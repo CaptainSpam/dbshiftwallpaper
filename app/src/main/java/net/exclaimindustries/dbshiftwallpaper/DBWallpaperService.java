@@ -4,9 +4,11 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -66,7 +68,6 @@ public class DBWallpaperService extends WallpaperService {
 
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
-            Log.d(DEBUG_TAG, "SURFACE CREATED");
             super.onSurfaceCreated(holder);
 
             // Presumably we're able to draw now.
@@ -75,7 +76,6 @@ public class DBWallpaperService extends WallpaperService {
 
         @Override
         public void onSurfaceDestroyed(SurfaceHolder holder) {
-            Log.d(DEBUG_TAG, "SURFACE DESTROYED");
             super.onSurfaceDestroyed(holder);
 
             // As stated earlier, destroying the surface means we're not visible
@@ -88,7 +88,6 @@ public class DBWallpaperService extends WallpaperService {
 
         @Override
         public void onVisibilityChanged(boolean visible) {
-            Log.d(DEBUG_TAG, "VISIBILITY CHANGED TO " + (visible ? "VISIBLE" : "INVISIBLE"));
             mVisible = visible;
 
             // Start drawing if we're visible, stop callbacks if not.
@@ -168,6 +167,28 @@ public class DBWallpaperService extends WallpaperService {
         }
 
         /**
+         * Gets the Drawable resource ID for a given shift.  In the current
+         * version, these are VectorDrawables.
+         *
+         * @param shift the shift in question
+         * @return the banner you're looking for
+         */
+        @DrawableRes private int getBannerDrawable(DBShift shift) {
+            switch(shift) {
+                case DAWNGUARD:
+                    return R.drawable.dbdawnguard;
+                case ALPHAFLIGHT:
+                    return R.drawable.dbalphaflight;
+                case NIGHTWATCH:
+                    return R.drawable.dbnightwatch;
+                case ZETASHIFT:
+                    return R.drawable.dbzetashift;
+            }
+
+            return -1;
+        }
+
+        /**
          * DRAW, PILGRIM!
          */
         private void draw() {
@@ -179,8 +200,6 @@ public class DBWallpaperService extends WallpaperService {
             Calendar cal = getCalendar();
             DBShift shift = getShift(cal);
 
-            Log.d(DEBUG_TAG, "CURRENT SHIFT: " + shift.name());
-
             // Let's see if we've got a usable SurfaceHolder.
             SurfaceHolder holder = getSurfaceHolder();
             Canvas canvas = null;
@@ -191,7 +210,6 @@ public class DBWallpaperService extends WallpaperService {
                 canvas = holder.lockCanvas();
 
                 if(canvas != null) {
-                    Log.d(DEBUG_TAG, "CANVAS NOT NULL AND IS " + canvas.getWidth() + "x" + canvas.getHeight());
                     // Until someone comes by and tells me this is wrong and
                     // stupid and I should never have done this for *OBVIOUS*
                     // reasons (insert eye roll here), let's just assume the
@@ -208,8 +226,25 @@ public class DBWallpaperService extends WallpaperService {
 
                     // Then, draw the banner on top of it, centered.  Fill as
                     // much vertical space as possible.
-                } else {
-                    Log.d(DEBUG_TAG, "CANVAS IS NULL, NOT DRAWING");
+                    @DrawableRes int shiftBanner = getBannerDrawable(shift);
+
+                    // Resolve that into a Drawable.  It's a VectorDrawable, but
+                    // we don't need to know that.
+                    Drawable d = getResources().getDrawable(shiftBanner, null);
+
+                    // Now, scale it.  Until further notice, all we want is to
+                    // make it stretch from the top to the bottom of the screen,
+                    // allowing for the background to cover the rest of it.  The
+                    // Drawables are at a kinda weird aspect ratio (oops), but
+                    // this oughta do it...
+                    float aspect = ((float)d.getIntrinsicWidth() / (float)d.getIntrinsicHeight());
+                    int newWidth = Math.round(canvas.getHeight() * aspect);
+
+                    // Finally, offset it to the middle.
+                    int left = (canvas.getWidth() - newWidth) / 2;
+
+                    d.setBounds(left, 0, left + newWidth, canvas.getHeight());
+                    d.draw(canvas);
                 }
             } finally {
                 if(canvas != null) {
@@ -231,7 +266,6 @@ public class DBWallpaperService extends WallpaperService {
                 cal.set(Calendar.SECOND, 0);
                 long next = cal.getTimeInMillis();
 
-                Log.d(DEBUG_TAG, "SCHEDULING NEXT DRAW IN " + ((next - now) / 1000) + " SECONDS");
                 mHandler.postDelayed(mRunner, next - now);
             }
 
