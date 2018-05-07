@@ -2,6 +2,7 @@ package net.exclaimindustries.dbshiftwallpaper;
 
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -58,6 +59,10 @@ public class DBWallpaperService extends WallpaperService {
         // Whether or not we were visible, last we checked.  Destroying the
         // surface counts as "becoming not visible".
         private boolean mVisible = false;
+
+        // Keep hold of this Paint.  We don't want to have to keep re-allocating
+        // it.
+        private Paint mPaint = new Paint();
 
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
@@ -141,6 +146,28 @@ public class DBWallpaperService extends WallpaperService {
         }
 
         /**
+         * Gets the background color for a given shift.  This will fill the area
+         * that isn't taken up by the banner.
+         *
+         * @param shift the shift in question
+         * @return the color int you're looking for
+         */
+        private int getBackgroundColor(DBShift shift) {
+            switch(shift) {
+                case DAWNGUARD:
+                    return 0xffef8131;
+                case ALPHAFLIGHT:
+                    return 0xffb1222a;
+                case NIGHTWATCH:
+                    return 0xff1574b7;
+                case ZETASHIFT:
+                    return 0xff603987;
+            }
+
+            return 0;
+        }
+
+        /**
          * DRAW, PILGRIM!
          */
         private void draw() {
@@ -171,6 +198,16 @@ public class DBWallpaperService extends WallpaperService {
                     // height and width of the canvas is accurate as to the
                     // overall size of the wallpaper, because that would make
                     // *SENSE*.
+
+                    // First, flood the entire canvas with a pleasing shade of
+                    // shift banner color.
+                    Rect canvasArea = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+                    mPaint.setColor(getBackgroundColor(shift));
+                    mPaint.setStyle(Paint.Style.FILL);
+                    canvas.drawRect(canvasArea, mPaint);
+
+                    // Then, draw the banner on top of it, centered.  Fill as
+                    // much vertical space as possible.
                 } else {
                     Log.d(DEBUG_TAG, "CANVAS IS NULL, NOT DRAWING");
                 }
