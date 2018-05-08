@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Desert Bus Shift Wallpaper</string>
     <string name="wallpaper_description">Displays the current Desert Bus For Hope shift as your wallpaper.</string>
-    <string name="service_name">DB Wallpaper Service</string>
+    <string name="service_name">Desert Bus Shift Wallpaper</string>
 
     <string name="pref_timezone_title">Time Zone</string>
     <string name="pref_timezone_on">Use Moonbase Time</string>
