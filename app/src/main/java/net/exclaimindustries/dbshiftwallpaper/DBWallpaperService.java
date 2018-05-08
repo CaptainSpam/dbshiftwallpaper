@@ -189,6 +189,59 @@ public class DBWallpaperService extends WallpaperService {
         }
 
         /**
+         * Draws the shift on the given Canvas with the given alpha.
+         *
+         * @param canvas Canvas on which to draw
+         * @param shift DBShift to draw
+         * @param alpha alpha, from 0 to 1 (for dissolve purposes)
+         */
+        private void drawShift(@NonNull Canvas canvas, DBShift shift, float alpha) {
+            // Make sure alpha is clamped properly.
+            if(alpha < 0.0f) alpha = 0.0f;
+            if(alpha > 1.0f) alpha = 1.0f;
+
+            int intAlpha = Math.round(255 * alpha);
+
+            // Until someone comes by and tells me this is wrong and
+            // stupid and I should never have done this for *OBVIOUS*
+            // reasons (insert eye roll here), let's just assume the
+            // height and width of the canvas is accurate as to the
+            // overall size of the wallpaper, because that would make
+            // *SENSE*.
+
+            // First, flood the entire canvas with a pleasing shade of
+            // shift banner color.
+            Rect canvasArea = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+            mPaint.setColor(getBackgroundColor(shift));
+            mPaint.setStyle(Paint.Style.FILL);
+            mPaint.setAlpha(intAlpha);
+            canvas.drawRect(canvasArea, mPaint);
+
+            // Then, draw the banner on top of it, centered.  Fill as
+            // much vertical space as possible.
+            @DrawableRes int shiftBanner = getBannerDrawable(shift);
+
+            // Resolve that into a Drawable.  It's a VectorDrawable, but
+            // we don't need to know that.
+            Drawable d = getResources().getDrawable(shiftBanner, null);
+
+            // Now, scale it.  Until further notice, all we want is to
+            // make it stretch from the top to the bottom of the screen,
+            // allowing for the background to cover the rest of it.  The
+            // Drawables are at a kinda weird aspect ratio (oops), but
+            // this oughta do it...
+            float aspect = ((float)d.getIntrinsicWidth() / (float)d.getIntrinsicHeight());
+            int newWidth = Math.round(canvas.getHeight() * aspect);
+
+            // Finally, offset it to the middle.
+            int left = (canvas.getWidth() - newWidth) / 2;
+
+            d.setBounds(left, 0, left + newWidth, canvas.getHeight());
+            d.setAlpha(intAlpha);
+            d.draw(canvas);
+        }
+
+        /**
          * DRAW, PILGRIM!
          */
         private void draw() {
@@ -210,41 +263,9 @@ public class DBWallpaperService extends WallpaperService {
                 canvas = holder.lockCanvas();
 
                 if(canvas != null) {
-                    // Until someone comes by and tells me this is wrong and
-                    // stupid and I should never have done this for *OBVIOUS*
-                    // reasons (insert eye roll here), let's just assume the
-                    // height and width of the canvas is accurate as to the
-                    // overall size of the wallpaper, because that would make
-                    // *SENSE*.
-
-                    // First, flood the entire canvas with a pleasing shade of
-                    // shift banner color.
-                    Rect canvasArea = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
-                    mPaint.setColor(getBackgroundColor(shift));
-                    mPaint.setStyle(Paint.Style.FILL);
-                    canvas.drawRect(canvasArea, mPaint);
-
-                    // Then, draw the banner on top of it, centered.  Fill as
-                    // much vertical space as possible.
-                    @DrawableRes int shiftBanner = getBannerDrawable(shift);
-
-                    // Resolve that into a Drawable.  It's a VectorDrawable, but
-                    // we don't need to know that.
-                    Drawable d = getResources().getDrawable(shiftBanner, null);
-
-                    // Now, scale it.  Until further notice, all we want is to
-                    // make it stretch from the top to the bottom of the screen,
-                    // allowing for the background to cover the rest of it.  The
-                    // Drawables are at a kinda weird aspect ratio (oops), but
-                    // this oughta do it...
-                    float aspect = ((float)d.getIntrinsicWidth() / (float)d.getIntrinsicHeight());
-                    int newWidth = Math.round(canvas.getHeight() * aspect);
-
-                    // Finally, offset it to the middle.
-                    int left = (canvas.getWidth() - newWidth) / 2;
-
-                    d.setBounds(left, 0, left + newWidth, canvas.getHeight());
-                    d.draw(canvas);
+                    // Draw the shift.  Breaking it out like this will make more
+                    // sense when I set up the dissolve in a later commit.
+                    drawShift(canvas, shift, 1.0f);
                 }
             } finally {
                 if(canvas != null) {
