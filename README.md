@@ -9,3 +9,5 @@ This is a simple Live Wallpaper that puts the current shift banner as your wallp
 * 6pm - Midnight: Night Watch
 
 By default, this will use Moonbase Standard Time (PST/PDT).  You can change it to your phone's local time if you want, but c'mon.
+
+Future planned functionality includes reading the DB API (if it still exists) so the app can throw up Omega Shift when DB is actually happening.
