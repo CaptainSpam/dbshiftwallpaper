@@ -21,6 +21,8 @@ public class DBWallpaperService extends WallpaperService {
      * Enum of the current shift.
      */
     private enum DBShift {
+        /** Used internally for unset situations. */
+        INVALID,
         /** Dawn Guard (6a-12n) */
         DAWNGUARD,
         /** Alpha Flight (12n-6p) */
@@ -66,9 +68,28 @@ public class DBWallpaperService extends WallpaperService {
         // it.
         private Paint mPaint = new Paint();
 
+        // The last shift we drew (for dissolve purposes).
+        private DBShift mLastDraw = DBShift.INVALID;
+        // The shift to which we're transitioning (also for dissolve purposes).
+        private DBShift mNextDraw = DBShift.INVALID;
+        // The system time at which we stop the current fade.  This should be
+        // one second past when we start it.
+        private long mStopFadeAt = 1L;
+
+        // The time between frames in the fade, in ms.  At present, this is a
+        // 30fps fade.
+        private static final long FRAME_TIME = 1000L / 30L;
+
+        // The amount of time a fade should take.
+        private static final long FADE_TIME = 1000L;
+
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
             super.onSurfaceCreated(holder);
+
+            // This is a new Surface, so the previous last-known shift is no
+            // longer valid.
+            mLastDraw = DBShift.INVALID;
 
             // Presumably we're able to draw now.
             mHandler.post(mRunner);
@@ -82,7 +103,7 @@ public class DBWallpaperService extends WallpaperService {
             // anymore.
             mVisible = false;
 
-            // Shut off the potentially hour-long callback.
+            // Shut off any callbacks.
             mHandler.removeCallbacks(mRunner);
         }
 
@@ -202,34 +223,31 @@ public class DBWallpaperService extends WallpaperService {
 
             int intAlpha = Math.round(255 * alpha);
 
-            // Until someone comes by and tells me this is wrong and
-            // stupid and I should never have done this for *OBVIOUS*
-            // reasons (insert eye roll here), let's just assume the
-            // height and width of the canvas is accurate as to the
-            // overall size of the wallpaper, because that would make
-            // *SENSE*.
+            // Let's just assume the height and width of the canvas is accurate
+            // as to the overall size of the wallpaper, because that would make
+            // *SENSE*.  Cue someone telling me that's horribly and obviously
+            // wrong.
 
-            // First, flood the entire canvas with a pleasing shade of
-            // shift banner color.
+            // First, flood the entire canvas with a pleasing shade of shift
+            // banner color.
             Rect canvasArea = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
             mPaint.setColor(getBackgroundColor(shift));
             mPaint.setStyle(Paint.Style.FILL);
             mPaint.setAlpha(intAlpha);
             canvas.drawRect(canvasArea, mPaint);
 
-            // Then, draw the banner on top of it, centered.  Fill as
-            // much vertical space as possible.
+            // Then, draw the banner on top of it, centered.  Fill as much
+            // vertical space as possible.
             @DrawableRes int shiftBanner = getBannerDrawable(shift);
 
-            // Resolve that into a Drawable.  It's a VectorDrawable, but
-            // we don't need to know that.
+            // Resolve that into a Drawable.  It's a VectorDrawable, but we
+            // don't need to know that.
             Drawable d = getResources().getDrawable(shiftBanner, null);
 
-            // Now, scale it.  Until further notice, all we want is to
-            // make it stretch from the top to the bottom of the screen,
-            // allowing for the background to cover the rest of it.  The
-            // Drawables are at a kinda weird aspect ratio (oops), but
-            // this oughta do it...
+            // Now, scale it.  Until further notice, all we want is to make it
+            // stretch from the top to the bottom of the screen, allowing for
+            // the background to cover the rest of it.  The Drawables are at a
+            // kinda weird aspect ratio (oops), but this oughta do it...
             float aspect = ((float)d.getIntrinsicWidth() / (float)d.getIntrinsicHeight());
             int newWidth = Math.round(canvas.getHeight() * aspect);
 
@@ -263,9 +281,50 @@ public class DBWallpaperService extends WallpaperService {
                 canvas = holder.lockCanvas();
 
                 if(canvas != null) {
-                    // Draw the shift.  Breaking it out like this will make more
-                    // sense when I set up the dissolve in a later commit.
-                    drawShift(canvas, shift, 1.0f);
+                    Log.d(DEBUG_TAG, "mLastDraw is " + mLastDraw.name() + "; mNextDraw is " + mNextDraw.name() + "; shift is " + shift.name());
+
+                    if(mLastDraw != mNextDraw && mNextDraw != shift) {
+                        // If all three of mLastDraw, mNextDraw, and shift are
+                        // different, that means we somehow got a shift change
+                        // DURING a transition, which is really weird and is
+                        // probably an error.  We should reset.
+                        Log.d(DEBUG_TAG, "Shifts are invalid, resetting...");
+                        mLastDraw = DBShift.INVALID;
+                    }
+
+                    if(mLastDraw == DBShift.INVALID || mLastDraw == shift) {
+                        // If the last-known shift we drew was INVALID, this is
+                        // the first run for this Surface.  Draw it without a
+                        // fade, we'll set mLastDraw during cleanup.
+                        //
+                        // If it matches the current shift, we're either in the
+                        // hourly check where it didn't change or we came back
+                        // from a visibility change.  Either way, just draw the
+                        // shift banner.
+                        Log.d(DEBUG_TAG, "Either initial shift or holding on last shift (" + shift.name() + ")");
+                        drawShift(canvas, shift, 1.0f);
+                    } else {
+                        // If the shift is different, we're crossfading.
+                        if(mStopFadeAt < cal.getTimeInMillis() && mNextDraw != shift) {
+                            // If the current time is past the last time at
+                            // which we faded (and shift is different from
+                            // mNextDraw), we're starting a new fade here and
+                            // now, so let's set up a couple values.
+                            mStopFadeAt = cal.getTimeInMillis() + FADE_TIME;
+                            mNextDraw = shift;
+                            Log.d(DEBUG_TAG, "This is a new fade, mStopFadeAt is now " + mStopFadeAt + " and fading to " + mNextDraw.name());
+                        }
+                        Log.d(DEBUG_TAG, "Fading from " + mLastDraw.name() + " to " + mNextDraw.name());
+
+                        // Draw the old shift first.
+                        drawShift(canvas, mLastDraw, 1.0f);
+
+                        // Now, draw the new shift, faded to a percentage of the
+                        // time to the end of the fade.  For the first run, this
+                        // will be zero, of course.
+                        Log.d(DEBUG_TAG, "New fade goes to " + ((float)(FADE_TIME - (mStopFadeAt - cal.getTimeInMillis())) / (float) FADE_TIME));
+                        drawShift(canvas, mNextDraw, (float)(FADE_TIME - (mStopFadeAt - cal.getTimeInMillis())) / (float) FADE_TIME);
+                    }
                 }
             } finally {
                 if(canvas != null) {
@@ -273,23 +332,48 @@ public class DBWallpaperService extends WallpaperService {
                 }
             }
 
-            // Now, the next draw.  This wallpaper is static for, in general,
-            // six hours at a time (until I implement fading between banners).
-            // The way we'll work this out is to simply wait until the top of
-            // the next hour before firing again (apart from surface changes or
-            // other forced redraws).  Calling this once an hour seems
-            // reasonable, and it'll come in handy when Omega Shift gets
-            // implemented.  So, assuming we're visible...
-            if(mVisible) {
+            // Now for cleanup.
+            long nextDrawDelay;
+
+            if(mLastDraw == DBShift.INVALID) {
+                Log.d(DEBUG_TAG, "Last draw was invalid, scheduling for the top of the hour...");
+                // If the last draw was invalid, this is init time (or an error
+                // case).  Next update is on the hour.
+                mLastDraw = shift;
+                mNextDraw = shift;
+                mStopFadeAt = 1L;
+
                 long now = cal.getTimeInMillis();
                 cal.add(Calendar.HOUR_OF_DAY, 1);
                 cal.set(Calendar.MINUTE, 0);
                 cal.set(Calendar.SECOND, 0);
-                long next = cal.getTimeInMillis();
+                nextDrawDelay = cal.getTimeInMillis() - now;
+            } else if(mStopFadeAt < cal.getTimeInMillis()) {
+                Log.d(DEBUG_TAG, "Last fade completed, scheduling for the top of the hour...");
+                // If the current time is past the time at which the fade should
+                // end, that means that, one way or another, we don't need to
+                // fade.  The next update should be on the hour.
+                mLastDraw = mNextDraw;
 
-                mHandler.postDelayed(mRunner, next - now);
+                long now = cal.getTimeInMillis();
+                cal.add(Calendar.HOUR_OF_DAY, 1);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                nextDrawDelay = cal.getTimeInMillis() - now;
+            } else {
+                Log.d(DEBUG_TAG, "In a fade, scheduling for next frame...");
+                // Otherwise, we're still fading.  Next update is at the next
+                // frame.
+                mNextDraw = shift;
+
+                nextDrawDelay = FRAME_TIME;
             }
 
+            // Schedule it!
+            if(mVisible) {
+                Log.d(DEBUG_TAG, "Current time is " + getCalendar().getTimeInMillis() + ", scheduling next draw in " + nextDrawDelay + "ms");
+                mHandler.postDelayed(mRunner, nextDrawDelay);
+            }
         }
     }
 }
