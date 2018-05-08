@@ -3,6 +3,8 @@
     <string name="wallpaper_description">Displays the current Desert Bus For Hope shift as your wallpaper.</string>
     <string name="service_name">Desert Bus Shift Wallpaper</string>
 
+    <string name="title_preferences">Preferences</string>
+
     <string name="pref_timezone_title">Time Zone</string>
     <string name="pref_timezone_on">Use Moonbase Time</string>
     <string name="pref_timezone_off">Use Local Time (not recommended)</string>

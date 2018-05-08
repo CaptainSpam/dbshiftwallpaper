@@ -4,7 +4,7 @@
 
     <uses-feature
         android:name="android.software.live_wallpaper"
-        android:required="true" >
+        android:required="true">
     </uses-feature>
 
     <application
@@ -18,19 +18,23 @@
             android:name=".DBWallpaperService"
             android:enabled="true"
             android:label="@string/service_name"
-            android:permission="android.permission.BIND_WALLPAPER" >
+            android:permission="android.permission.BIND_WALLPAPER">
             <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" >
+                <action android:name="android.service.wallpaper.WallpaperService">
                 </action>
             </intent-filter>
 
             <meta-data
                 android:name="android.service.wallpaper"
-                android:resource="@xml/wallpaper" >
+                android:resource="@xml/wallpaper">
             </meta-data>
         </service>
 
+        <activity
+            android:exported="true"
+            android:name=".DBWallpaperPreferences"
+            android:label="@string/title_preferences">
+        </activity>
     </application>
-
 
 </manifest>

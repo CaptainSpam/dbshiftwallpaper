@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="TimeZone"
+        android:persistent="true"
+        android:summaryOff="@string/pref_timezone_off"
+        android:summaryOn="@string/pref_timezone_on"
+        android:title="@string/pref_timezone_title" />
+</PreferenceScreen>
