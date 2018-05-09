@@ -322,7 +322,6 @@ public class DBWallpaperService extends WallpaperService {
                         // Now, draw the new shift, faded to a percentage of the
                         // time to the end of the fade.  For the first run, this
                         // will be zero, of course.
-                        Log.d(DEBUG_TAG, "New fade goes to " + ((float)(FADE_TIME - (mStopFadeAt - cal.getTimeInMillis())) / (float) FADE_TIME));
                         drawShift(canvas, mNextDraw, (float)(FADE_TIME - (mStopFadeAt - cal.getTimeInMillis())) / (float) FADE_TIME);
                     }
                 }
@@ -371,7 +370,7 @@ public class DBWallpaperService extends WallpaperService {
 
             // Schedule it!
             if(mVisible) {
-                Log.d(DEBUG_TAG, "Current time is " + getCalendar().getTimeInMillis() + ", scheduling next draw in " + nextDrawDelay + "ms");
+                Log.d(DEBUG_TAG, "Scheduling next draw in " + nextDrawDelay + "ms");
                 mHandler.postDelayed(mRunner, nextDrawDelay);
             }
         }
