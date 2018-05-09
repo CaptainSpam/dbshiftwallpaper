@@ -5,11 +5,13 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
+import android.support.graphics.drawable.VectorDrawableCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
@@ -240,9 +242,14 @@ public class DBWallpaperService extends WallpaperService {
             // vertical space as possible.
             @DrawableRes int shiftBanner = getBannerDrawable(shift);
 
-            // Resolve that into a Drawable.  It's a VectorDrawable, but we
-            // don't need to know that.
-            Drawable d = getResources().getDrawable(shiftBanner, null);
+            // Resolve that into a Drawable.  If we're running pre-Lollipop, we
+            // need to go to the VectorDrawableCompat library.  Either way, we
+            // only need to care that it's a Drawable.
+            Drawable d;
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                d = getResources().getDrawable(shiftBanner, null);
+            else
+                d = VectorDrawableCompat.create(getResources(), shiftBanner, null);
 
             // Now, scale it.  Until further notice, all we want is to make it
             // stretch from the top to the bottom of the screen, allowing for
