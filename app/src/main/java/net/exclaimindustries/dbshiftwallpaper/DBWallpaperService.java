@@ -1,7 +1,10 @@
 package net.exclaimindustries.dbshiftwallpaper;
 
+import android.annotation.TargetApi;
+import android.app.WallpaperColors;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -11,6 +14,7 @@ import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.graphics.drawable.VectorDrawableCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -349,6 +353,10 @@ public class DBWallpaperService extends WallpaperService {
                 mNextDraw = shift;
                 mStopFadeAt = 1L;
 
+                // Color up!
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1)
+                    notifyColorsChanged();
+
                 long now = cal.getTimeInMillis();
                 cal.add(Calendar.HOUR_OF_DAY, 1);
                 cal.set(Calendar.MINUTE, 0);
@@ -361,6 +369,10 @@ public class DBWallpaperService extends WallpaperService {
                 // fade.  The next update should be on the hour.
                 mLastDraw = mNextDraw;
 
+                // Color up!
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1)
+                    notifyColorsChanged();
+
                 long now = cal.getTimeInMillis();
                 cal.add(Calendar.HOUR_OF_DAY, 1);
                 cal.set(Calendar.MINUTE, 0);
@@ -369,7 +381,10 @@ public class DBWallpaperService extends WallpaperService {
             } else {
                 Log.d(DEBUG_TAG, "In a fade, scheduling for next frame...");
                 // Otherwise, we're still fading.  Next update is at the next
-                // frame.
+                // frame.  Don't do a color update, as we're between colors and
+                // it's not really worth computing intermediate colors during
+                // the fade.  I think.  Actually, I'm not really clear why the
+                // WallpaperColors part exists, but I've at least got guesses.
                 mNextDraw = shift;
 
                 nextDrawDelay = FRAME_TIME;
@@ -380,6 +395,65 @@ public class DBWallpaperService extends WallpaperService {
                 Log.d(DEBUG_TAG, "Scheduling next draw in " + nextDrawDelay + "ms");
                 mHandler.postDelayed(mRunner, nextDrawDelay);
             }
+        }
+
+        @Nullable
+        @Override
+        @TargetApi(27)
+        public WallpaperColors onComputeColors() {
+            // Let's get fancy here.  First off, if we're in the middle of a
+            // transition when we're asked for this (I don't *think* that should
+            // happen, but maybe?), we return null.  We're not going to bother.
+            if(mLastDraw != mNextDraw)
+                return null;
+
+            // Otherwise, we can build up a WallpaperColors.  Now, I know
+            // there's fromDrawable we can use for this, but since we only need
+            // three colors AND the shift banners use pretty simple color
+            // palettes, why not just do this ourselves and make sure the data
+            // is nice and clean?
+            Color primary, secondary, tertiary;
+
+            // To wit: The background color will be the primary, as that's the
+            // splash to fill in any space that the banner doesn't take.  Most
+            // of the screen should be this color, in other words.  Secondary
+            // and tertiary is on a per-use basis.
+            primary = Color.valueOf(getBackgroundColor(mLastDraw));
+
+            switch(mLastDraw) {
+                case DAWNGUARD:
+                    // The top half of Dawnguard is the background, so the
+                    // bottom half will be the secondary.  The yellow banner
+                    // trim is tertiary.
+                    secondary = Color.valueOf(0xffc16b31);
+                    tertiary = Color.valueOf(0xffebe24c);
+                    break;
+                case ALPHAFLIGHT:
+                    // Alpha Flight has only three colors: The background, the
+                    // pale sinister, and the white for the wing.
+                    secondary = Color.valueOf(0xff741216);
+                    tertiary = Color.valueOf(Color.WHITE);
+                    break;
+                case NIGHTWATCH:
+                    // Night Watch has the blue of the moon and the lighter
+                    // trim.
+                    secondary = Color.valueOf(0xff27245f);
+                    tertiary = Color.valueOf(0xff2cabdf);
+                    break;
+                case ZETASHIFT:
+                    // Zeta Shift is similar to Alpha Flight, where it only has
+                    // three colors.  Again, let's use white as the tertiary.
+                    secondary = Color.valueOf(0xff9166a9);
+                    tertiary = Color.valueOf(Color.WHITE);
+                    break;
+                case INVALID:
+                default:
+                    // This REALLY shouldn't happen.
+                    return null;
+            }
+
+            // Button all this up into a WallpaperColors, and we're set!
+            return new WallpaperColors(primary, secondary, tertiary);
         }
     }
 }
