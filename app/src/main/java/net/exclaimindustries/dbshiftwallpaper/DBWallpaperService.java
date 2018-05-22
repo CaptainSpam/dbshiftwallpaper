@@ -168,7 +168,7 @@ public class DBWallpaperService extends WallpaperService {
             // The watch arrives; the Moonbase is at peace.
             return DBShift.NIGHTWATCH;
 
-            // TODO: Read API and determine if it's Omega Shift in-run?
+            // TODO: Come up with a way to determine if it's Omega Shift in-run?
         }
 
         /**
@@ -190,6 +190,7 @@ public class DBWallpaperService extends WallpaperService {
                     return 0xff603987;
             }
 
+            Log.e(DEBUG_TAG, "Tried to get background color for shift " + shift.name() + ", fell out of switch statement?");
             return 0;
         }
 
@@ -212,6 +213,7 @@ public class DBWallpaperService extends WallpaperService {
                     return R.drawable.dbzetashift;
             }
 
+            Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " + shift.name() + ", fell out of switch statement?");
             return -1;
         }
 
