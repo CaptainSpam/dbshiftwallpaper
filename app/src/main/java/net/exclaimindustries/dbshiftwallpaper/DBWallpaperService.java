@@ -255,6 +255,16 @@ public class DBWallpaperService extends WallpaperService {
             else
                 d = VectorDrawableCompat.create(getResources(), shiftBanner, null);
 
+            // If d winds up null, something went very very wrong.
+            if(d == null) {
+                Log.e(DEBUG_TAG, "The shift banner Drawable is somehow null! (" +
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ?
+                                "Lollipop or greater; should've been a VectorDrawable and also should've thrown an exception?" :
+                                "Pre-Lollipop; should've been a VectorDrawableCompat, must've been a parse error?") +
+                        ")");
+                return;
+            }
+
             // Now, scale it.  Until further notice, all we want is to make it
             // stretch from the top to the bottom of the screen, allowing for
             // the background to cover the rest of it.  The Drawables are at a
