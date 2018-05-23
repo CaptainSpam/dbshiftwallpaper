@@ -114,6 +114,21 @@ public class DBWallpaperService extends WallpaperService {
         }
 
         @Override
+        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            super.onSurfaceChanged(holder, format, width, height);
+
+            // If the surface changed, chances are this is a device where the
+            // home screen can be rotated, and it just got rotated.  In those
+            // cases, we don't know for sure if we got onVisibilityChanged, so
+            // let's reset the handler and post it up again just in case.  We
+            // might immediately get onVisibilityChanged, but the worst case
+            // there is we just draw two frames in a row.  We also don't care
+            // about the new width or height, those will be found during draw().
+            mHandler.removeCallbacks(mRunner);
+            mHandler.post(mRunner);
+        }
+
+        @Override
         public void onVisibilityChanged(boolean visible) {
             mVisible = visible;
 
@@ -401,6 +416,10 @@ public class DBWallpaperService extends WallpaperService {
 
                 nextDrawDelay = FRAME_TIME;
             }
+
+            // Clear anything else in the queue, just in case.  We don't want to
+            // accidentally pile up spurious draws, after all.
+            mHandler.removeCallbacks(mRunner);
 
             // Schedule it!
             if(mVisible) {
