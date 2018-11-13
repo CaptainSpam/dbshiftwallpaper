@@ -193,7 +193,7 @@ public class DBWallpaperService extends WallpaperService {
          * @param shift the shift in question
          * @return the color int you're looking for
          */
-        private int getBackgroundColor(DBShift shift) {
+        private int getBackgroundColor(@NonNull DBShift shift) {
             switch(shift) {
                 case DAWNGUARD:
                     return 0xffef8131;
@@ -218,7 +218,7 @@ public class DBWallpaperService extends WallpaperService {
          * @param shift the shift in question
          * @return the banner you're looking for
          */
-        @DrawableRes private int getBannerDrawable(DBShift shift) {
+        @DrawableRes private int getBannerDrawable(@NonNull DBShift shift) {
             switch(shift) {
                 case DAWNGUARD:
                     return R.drawable.dbdawnguard;
@@ -243,7 +243,7 @@ public class DBWallpaperService extends WallpaperService {
          * @param shift DBShift to draw
          * @param alpha alpha, from 0 to 1 (for dissolve purposes)
          */
-        private void drawShift(@NonNull Canvas canvas, DBShift shift, float alpha) {
+        private void drawShift(@NonNull Canvas canvas, @NonNull DBShift shift, float alpha) {
             // Make sure alpha is clamped properly.
             if(alpha < 0.0f) alpha = 0.0f;
             if(alpha > 1.0f) alpha = 1.0f;
