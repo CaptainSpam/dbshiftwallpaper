@@ -37,8 +37,8 @@ public class DBWallpaperService extends WallpaperService {
         NIGHTWATCH,
         /** Zeta Shift (12m-6a) */
         ZETASHIFT,
-//        /** Omega Shift (whenever the API says it is; not currently used) */
-//        OMEGASHIFT
+        /** Omega Shift (whenever the API says it is; not currently used) */
+        OMEGASHIFT
     }
 
     private static final String DEBUG_TAG = "DBWallpaperService";
@@ -203,6 +203,8 @@ public class DBWallpaperService extends WallpaperService {
                     return 0xff1574b7;
                 case ZETASHIFT:
                     return 0xff603987;
+                case OMEGASHIFT:
+                    return 0x00000000;
             }
 
             Log.e(DEBUG_TAG, "Tried to get background color for shift " + shift.name() + ", fell out of switch statement?");
@@ -226,6 +228,8 @@ public class DBWallpaperService extends WallpaperService {
                     return R.drawable.dbnightwatch;
                 case ZETASHIFT:
                     return R.drawable.dbzetashift;
+                case OMEGASHIFT:
+                    return R.drawable.dbomegashift;
             }
 
             Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " + shift.name() + ", fell out of switch statement?");
@@ -475,6 +479,15 @@ public class DBWallpaperService extends WallpaperService {
                     // Zeta Shift is similar to Alpha Flight, where it only has
                     // three colors.  Again, let's use white as the tertiary.
                     secondary = Color.valueOf(0xff9166a9);
+                    tertiary = Color.valueOf(Color.WHITE);
+                    break;
+                case OMEGASHIFT:
+                    // Omega Shift is tricky.  It has all four banner colors,
+                    // making it hard to pick a secondary.  So, until I have a
+                    // better idea, let's just go with... oh... the blue of
+                    // Night Watch's moon.  The tertiary is still just the white
+                    // of the omega.
+                    secondary = Color.valueOf(0xff27245f);
                     tertiary = Color.valueOf(Color.WHITE);
                     break;
                 case INVALID:
