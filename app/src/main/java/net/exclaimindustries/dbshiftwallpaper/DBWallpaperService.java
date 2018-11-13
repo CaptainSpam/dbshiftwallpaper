@@ -333,6 +333,9 @@ public class DBWallpaperService extends WallpaperService {
                                 // Meh.
                             }
                         }
+
+                        // Make sure the timer got canceled no matter what.
+                        task.cancel();
                     }
                 }
             }).start();
