@@ -8,4 +8,8 @@
     <string name="pref_timezone_title">Time Zone</string>
     <string name="pref_timezone_on">Use Moonbase Time</string>
     <string name="pref_timezone_off">Use Local Time (not recommended)</string>
+
+    <string name="pref_omega_title">Omega Shift</string>
+    <string name="pref_omega_on">Periodically check for Omega Shift</string>
+    <string name="pref_omega_off">Just use the normal shift banners</string>
 </resources>

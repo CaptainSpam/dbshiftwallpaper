@@ -19,8 +19,19 @@ import android.support.graphics.drawable.VectorDrawableCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import cz.msebera.android.httpclient.HttpResponse;
+import cz.msebera.android.httpclient.client.methods.CloseableHttpResponse;
+import cz.msebera.android.httpclient.client.methods.HttpGet;
+import cz.msebera.android.httpclient.impl.client.CloseableHttpClient;
+import cz.msebera.android.httpclient.impl.client.HttpClients;
 
 public class DBWallpaperService extends WallpaperService {
     /**
@@ -44,6 +55,12 @@ public class DBWallpaperService extends WallpaperService {
     private static final String DEBUG_TAG = "DBWallpaperService";
 
     public static final String PREF_TIMEZONE = "TimeZone";
+    public static final String PREF_OMEGASHIFT = "AllowOmegaShift";
+
+    // We'll use the VST's Omega Shift checker for simplicity.
+    private static final String OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html";
+    private static final int CONNECTION_TIMEOUT_SEC = 10;
+    private static final int CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000;
 
     @Override
     public Engine onCreateEngine() {
@@ -57,7 +74,7 @@ public class DBWallpaperService extends WallpaperService {
         private final Handler mHandler = new Handler();
 
         // This Runnable will thus be posted to said Handler...
-        private final Runnable mRunner = new Runnable() {
+        private final Runnable mDrawRunner = new Runnable() {
             @Override
             public void run() {
                 // ...meaning this gets run on the UI thread, so we can do a
@@ -66,9 +83,20 @@ public class DBWallpaperService extends WallpaperService {
             }
         };
 
+        // This Runnable gets called every so often to check for Omega Shift.
+        private final Runnable mOmegaRunner = new Runnable() {
+            @Override
+            public void run() {
+                checkOmegaShift();
+            }
+        };
+
         // Whether or not we were visible, last we checked.  Destroying the
         // surface counts as "becoming not visible".
         private boolean mVisible = false;
+
+        // Whether or not it's Omega Shift right now.
+        private boolean mOmegaShift = false;
 
         // Keep hold of this Paint.  We don't want to have to keep re-allocating
         // it.
@@ -89,6 +117,12 @@ public class DBWallpaperService extends WallpaperService {
         // The amount of time a fade should take.
         private static final long FADE_TIME = 1000L;
 
+        // The amount of time between Omega Shift checks.  We'll go with ten
+        // minutes for now.
+        private static final long OMEGA_INTERVAL = 600000L;
+
+        private HttpGet mRequest;
+
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
             super.onSurfaceCreated(holder);
@@ -98,7 +132,10 @@ public class DBWallpaperService extends WallpaperService {
             mLastDraw = DBShift.INVALID;
 
             // Presumably we're able to draw now.
-            mHandler.post(mRunner);
+            mHandler.post(mDrawRunner);
+
+            // And, begin checking for Omega Shift.
+            mHandler.post(mOmegaRunner);
         }
 
         @Override
@@ -110,7 +147,8 @@ public class DBWallpaperService extends WallpaperService {
             mVisible = false;
 
             // Shut off any callbacks.
-            mHandler.removeCallbacks(mRunner);
+            mHandler.removeCallbacks(mDrawRunner);
+            mHandler.removeCallbacks(mOmegaRunner);
         }
 
         @Override
@@ -124,8 +162,10 @@ public class DBWallpaperService extends WallpaperService {
             // might immediately get onVisibilityChanged, but the worst case
             // there is we just draw two frames in a row.  We also don't care
             // about the new width or height, those will be found during draw().
-            mHandler.removeCallbacks(mRunner);
-            mHandler.post(mRunner);
+            mHandler.removeCallbacks(mDrawRunner);
+            mHandler.removeCallbacks(mOmegaRunner);
+            mHandler.post(mDrawRunner);
+            mHandler.post(mOmegaRunner);
         }
 
         @Override
@@ -133,10 +173,14 @@ public class DBWallpaperService extends WallpaperService {
             mVisible = visible;
 
             // Start drawing if we're visible, stop callbacks if not.
-            if(visible)
-                mHandler.post(mRunner);
-            else
-                mHandler.removeCallbacks(mRunner);
+            if(visible) {
+                mHandler.post(mDrawRunner);
+                mHandler.post(mOmegaRunner);
+            }
+            else {
+                mHandler.removeCallbacks(mDrawRunner);
+                mHandler.removeCallbacks(mOmegaRunner);
+            }
 
             super.onVisibilityChanged(visible);
         }
@@ -147,6 +191,7 @@ public class DBWallpaperService extends WallpaperService {
          *
          * @return a timezone-adjusted Calendar
          */
+        @NonNull
         private Calendar getCalendar() {
             // Prefs up!
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(DBWallpaperService.this);
@@ -166,12 +211,150 @@ public class DBWallpaperService extends WallpaperService {
         }
 
         /**
+         * Checks if it's Omega Shift time, preferences permitting.  If
+         * permitting, this will entail a network connection.
+         */
+        private void checkOmegaShift() {
+            // Get a calendar.  We need to know if it's November.
+            int month = Calendar.getInstance().get(Calendar.MONTH);
+
+            // PREFS!!!
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(DBWallpaperService.this);
+
+            // If it's not November, it's not Desert Bus time, and thus it can't
+            // be Omega Shift.  Also, if the user doesn't want Omega Shift, it
+            // won't be Omega Shift.
+            if(month != Calendar.NOVEMBER || !prefs.getBoolean(PREF_OMEGASHIFT, false)) {
+                // If Omega Shift is supposed to be off but the last-drawn shift
+                // WAS Omega Shift, call a redraw.
+                Log.d(DEBUG_TAG, "We're not checking Omega Shift right now.");
+                if(mOmegaShift) {
+                    mOmegaShift = false;
+                    mHandler.post(mDrawRunner);
+                }
+                return;
+            }
+
+            // Otherwise, it's off to a thread for a network connection.  This
+            // is a Wallpaper service, remember, so we're assumed to be in the
+            // foreground, so we don't need to do wacky power-saving stuff.
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW");
+                    // I swear there has to be a simpler way to do this, but I
+                    // just wanted to stick with what I know for now...
+
+                    // Build an HTTP client that can be closed.  We want to be
+                    // able to bail out if it's taking too long.  This really
+                    // shouldn't take much time unless this is a truly
+                    // disastrous internet connection.
+                    CloseableHttpClient client = HttpClients.createDefault();
+                    mRequest = new HttpGet(OMEGA_CHECK_URL);
+
+                    HttpResponse response = null;
+
+                    // Get ready to time out if need be.
+                    TimerTask task = new TimerTask() {
+                        @Override
+                        public void run() {
+                            Log.w(DEBUG_TAG, "Omega Shift check timed out, bailing out...");
+                            try {
+                                mRequest.abort();
+                            } catch (NullPointerException npe) {
+                                // If the request was somehow null, just ignore
+                                // it.
+                            }
+                        }
+                    };
+
+                    // Timer goes now!  We'll start the client immediately in the
+                    // upcoming try block.
+                    new Timer(true).schedule(task, CONNECTION_TIMEOUT_MS);
+
+                    try {
+                        // Go!
+                        response = client.execute(mRequest);
+
+                        // Immediately cancel the timer when it gets back.
+                        task.cancel();
+
+                        // If there was any sort of error, forget about it.
+                        if(mRequest.isAborted()
+                                || response.getStatusLine().getStatusCode()
+                                    != HttpURLConnection.HTTP_OK)
+                            return;
+
+                        // Otherwise, we should have exactly one character, a one
+                        // or a zero.
+                        InputStream stream = response.getEntity().getContent();
+                        int codeInt = stream.read();
+                        ((CloseableHttpResponse) response).close();
+                        stream.close();
+
+                        // Finally, the moment of truth.  In ASCII, 48 is '0',
+                        // 49 is '1'.
+                        switch(codeInt) {
+                            case 48:
+                                // It's not Omega Shift!  If we last knew it to
+                                // be Omega Shift, invalidate it and redraw.
+                                Log.d(DEBUG_TAG, "It's not Omega Shift!");
+                                if(mOmegaShift) {
+                                    mOmegaShift = false;
+                                    mHandler.removeCallbacks(mDrawRunner);
+                                    mHandler.post(mDrawRunner);
+                                }
+                                break;
+                            case 49:
+                                // It's Omega Shift!
+                                Log.d(DEBUG_TAG, "It's Omega Shift!");
+                                if(!mOmegaShift) {
+                                    mOmegaShift = true;
+                                    mHandler.removeCallbacks(mDrawRunner);
+                                    mHandler.post(mDrawRunner);
+                                }
+                                break;
+                            default:
+                                // It's... neither?
+                                Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
+                                break;
+                        }
+
+                    } catch (IOException ioe) {
+                        // If there's an IO exception, log it, but silently
+                        // ignore it anyway.  This might include there being no
+                        // network connection at all.
+                        Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe);
+                    } finally {
+                        if(response != null) {
+                            try {
+                                ((CloseableHttpResponse) response).close();
+                            } catch(Exception e) {
+                                // Meh.
+                            }
+                        }
+                    }
+                }
+            }).start();
+
+            // Reschedule here.  We'll let the thread return as need be.
+            mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL);
+        }
+
+        /**
          * Gets the active shift for a given Calendar.
          *
          * @param cal the active Calendar
          * @return a shift
          */
+        @NonNull
         private DBShift getShift(@NonNull Calendar cal) {
+            // If Omega Shift has already been called, keep going with it.  The
+            // Omega Shift checker will return the shift to Invalid once it's
+            // ready to go back, and we'll recalculate from there.
+            if(mOmegaShift)
+                return DBShift.OMEGASHIFT;
+
             int hour = cal.get(Calendar.HOUR_OF_DAY);
 
             // The Zeta begins; the watch is helpless to stop it.
@@ -182,8 +365,6 @@ public class DBWallpaperService extends WallpaperService {
             if(hour >= 12 && hour < 18) return DBShift.ALPHAFLIGHT;
             // The watch arrives; the Moonbase is at peace.
             return DBShift.NIGHTWATCH;
-
-            // TODO: Come up with a way to determine if it's Omega Shift in-run?
         }
 
         /**
@@ -218,7 +399,8 @@ public class DBWallpaperService extends WallpaperService {
          * @param shift the shift in question
          * @return the banner you're looking for
          */
-        @DrawableRes private int getBannerDrawable(@NonNull DBShift shift) {
+        @DrawableRes
+        private int getBannerDrawable(@NonNull DBShift shift) {
             switch(shift) {
                 case DAWNGUARD:
                     return R.drawable.dbdawnguard;
@@ -423,12 +605,12 @@ public class DBWallpaperService extends WallpaperService {
 
             // Clear anything else in the queue, just in case.  We don't want to
             // accidentally pile up spurious draws, after all.
-            mHandler.removeCallbacks(mRunner);
+            mHandler.removeCallbacks(mDrawRunner);
 
             // Schedule it!
             if(mVisible) {
                 Log.d(DEBUG_TAG, "Scheduling next draw in " + nextDrawDelay + "ms");
-                mHandler.postDelayed(mRunner, nextDrawDelay);
+                mHandler.postDelayed(mDrawRunner, nextDrawDelay);
             }
         }
 

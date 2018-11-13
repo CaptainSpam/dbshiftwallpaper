@@ -7,4 +7,11 @@
         android:summaryOff="@string/pref_timezone_off"
         android:summaryOn="@string/pref_timezone_on"
         android:title="@string/pref_timezone_title" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="AllowOmegaShift"
+        android:persistent="true"
+        android:summaryOff="@string/pref_omega_off"
+        android:summaryOn="@string/pref_omega_on"
+        android:title="@string/pref_omega_title" />
 </PreferenceScreen>
