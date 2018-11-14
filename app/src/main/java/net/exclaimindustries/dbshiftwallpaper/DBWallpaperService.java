@@ -57,11 +57,6 @@ public class DBWallpaperService extends WallpaperService {
     public static final String PREF_TIMEZONE = "TimeZone";
     public static final String PREF_OMEGASHIFT = "AllowOmegaShift";
 
-    // We'll use the VST's Omega Shift checker for simplicity.
-    private static final String OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html";
-    private static final int CONNECTION_TIMEOUT_SEC = 10;
-    private static final int CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000;
-
     @Override
     public Engine onCreateEngine() {
         // And away we go!
@@ -116,6 +111,13 @@ public class DBWallpaperService extends WallpaperService {
 
         // The amount of time a fade should take.
         private static final long FADE_TIME = 1000L;
+
+        // We'll use the VST's Omega Shift checker for simplicity.
+        private static final String OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html";
+
+        // Give it ten seconds to connect.  It shouldn't take that long.
+        private static final int CONNECTION_TIMEOUT_SEC = 10;
+        private static final int CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000;
 
         // The amount of time between Omega Shift checks.  We'll go with ten
         // minutes for now.
