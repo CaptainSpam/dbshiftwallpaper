@@ -10,4 +10,4 @@ This is a simple Live Wallpaper that puts the current shift banner as your wallp
 
 By default, this will use Moonbase Standard Time (PST/PDT).  You can change it to your phone's local time if you want, but c'mon.
 
-Future planned functionality includes reading the DB API (if it still exists) so the app can throw up Omega Shift when DB is actually happening.
+There's also an option to read from the VST whether or not it's Omega Shift.  This is the only reason this app needs any network permissions (there's no way to determine that otherwise).  It's set to trigger every ten minutes when the wallpaper is visible and if it's November (Desert Bus is always in November).
