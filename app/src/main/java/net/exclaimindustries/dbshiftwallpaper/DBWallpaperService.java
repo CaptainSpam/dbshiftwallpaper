@@ -27,7 +27,6 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import cz.msebera.android.httpclient.HttpResponse;
 import cz.msebera.android.httpclient.client.methods.CloseableHttpResponse;
 import cz.msebera.android.httpclient.client.methods.HttpGet;
 import cz.msebera.android.httpclient.impl.client.CloseableHttpClient;
@@ -254,7 +253,7 @@ public class DBWallpaperService extends WallpaperService {
                     CloseableHttpClient client = HttpClients.createDefault();
                     mRequest = new HttpGet(OMEGA_CHECK_URL);
 
-                    HttpResponse response = null;
+                    CloseableHttpResponse response = null;
 
                     // Get ready to time out if need be.
                     TimerTask task = new TimerTask() {
@@ -291,7 +290,7 @@ public class DBWallpaperService extends WallpaperService {
                         // or a zero.
                         InputStream stream = response.getEntity().getContent();
                         int codeInt = stream.read();
-                        ((CloseableHttpResponse) response).close();
+                        response.close();
                         stream.close();
 
                         // Finally, the moment of truth.  In ASCII, 48 is '0',
@@ -330,7 +329,7 @@ public class DBWallpaperService extends WallpaperService {
                     } finally {
                         if(response != null) {
                             try {
-                                ((CloseableHttpResponse) response).close();
+                                response.close();
                             } catch(Exception e) {
                                 // Meh.
                             }
