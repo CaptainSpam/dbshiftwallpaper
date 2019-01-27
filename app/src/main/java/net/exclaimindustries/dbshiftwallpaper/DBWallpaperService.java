@@ -93,6 +93,10 @@ public class DBWallpaperService extends WallpaperService {
         // The system time at which we stop the current fade.  This should be
         // one second past when we start it.
         private long mStopFadeAt = 1L;
+        // The last time we checked for Omega Shift.  We'll check against this
+        // whenever we get a new surface.  Hopefully the service itself doesn't
+        // get destroyed all the time, else this won't do anything.
+        private long mLastOmegaCheck = 0L;
 
         // The time between frames in the fade, in ms.  At present, this is a
         // 30fps fade.
@@ -108,8 +112,8 @@ public class DBWallpaperService extends WallpaperService {
         private static final int CONNECTION_TIMEOUT_SEC = 10;
         private static final int CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000;
 
-        // The amount of time between Omega Shift checks.  We'll go with ten
-        // minutes for now.
+        // The amount of time between Omega Shift checks.  We'll go with (at
+        // least) ten minutes for now.
         private static final long OMEGA_INTERVAL = 600000L;
 
         private HttpGet mRequest;
@@ -126,7 +130,7 @@ public class DBWallpaperService extends WallpaperService {
             mHandler.post(mDrawRunner);
 
             // And, begin checking for Omega Shift.
-            mHandler.post(mOmegaRunner);
+            rescheduleOmegaShift();
         }
 
         @Override
@@ -156,7 +160,7 @@ public class DBWallpaperService extends WallpaperService {
             mHandler.removeCallbacks(mDrawRunner);
             mHandler.removeCallbacks(mOmegaRunner);
             mHandler.post(mDrawRunner);
-            mHandler.post(mOmegaRunner);
+            rescheduleOmegaShift();
         }
 
         @Override
@@ -166,7 +170,7 @@ public class DBWallpaperService extends WallpaperService {
             // Start drawing if we're visible, stop callbacks if not.
             if(visible) {
                 mHandler.post(mDrawRunner);
-                mHandler.post(mOmegaRunner);
+                rescheduleOmegaShift();
             }
             else {
                 mHandler.removeCallbacks(mDrawRunner);
@@ -174,6 +178,30 @@ public class DBWallpaperService extends WallpaperService {
             }
 
             super.onVisibilityChanged(visible);
+        }
+
+        /**
+         * Properly either sends the Omega Shift checker off for execution or
+         * schedules it to happen later if the last check was too recent.
+         */
+        private void rescheduleOmegaShift() {
+            // Figure out how long it's been since the last check.  If the
+            // service has just been started, mLastOmegaCheck will be zero,
+            // resulting in what SHOULD always be something greater than
+            // OMEGA_INTERVAL, assuming the user hasn't sent their mobile device
+            // back in time.
+            long timeDifference =
+                    Calendar.getInstance().getTimeInMillis() - mLastOmegaCheck;
+
+            if(timeDifference > OMEGA_INTERVAL) {
+                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference + " ago, checking now...");
+                // If we're within the timeout, run the Omega check immediately.
+                mHandler.post(mOmegaRunner);
+            } else {
+                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference + " ago, rescheduling with a delay of " + (OMEGA_INTERVAL - timeDifference) + "...");
+                // Otherwise, schedule it for whenever it should run next.
+                mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL - timeDifference);
+            }
         }
 
         /**
@@ -206,6 +234,8 @@ public class DBWallpaperService extends WallpaperService {
          * permitting, this will entail a network connection.
          */
         private void checkOmegaShift() {
+            // Update the last checked time.  We're checking right now!
+
             // Get a calendar.  We need to know if it's November.
             int month = Calendar.getInstance().get(Calendar.MONTH);
 
@@ -223,96 +253,97 @@ public class DBWallpaperService extends WallpaperService {
                     mOmegaShift = false;
                     mHandler.post(mDrawRunner);
                 }
-                return;
+            } else {
+                // Otherwise, it's off to a thread for a network connection.
+                // This is a Wallpaper service, remember, so we're assumed to be
+                // in the foreground, so we don't need to do wacky power-saving
+                // stuff.
+                new Thread(() -> {
+                    Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW");
+                    // I swear there has to be a simpler way to do this, but I
+                    // just wanted to stick with what I know for now...
+
+                    // Build an HTTP client that can be closed.  We want to be
+                    // able to bail out if it's taking too long.  This really
+                    // shouldn't take much time unless this is a truly
+                    // disastrous internet connection.
+                    CloseableHttpClient client = HttpClients.createDefault();
+                    mRequest = new HttpGet(OMEGA_CHECK_URL);
+
+                    // Timer goes now!  We'll start the client immediately in
+                    // the upcoming try block.
+                    TimerTask task = new TimerTask() {
+                        @Override
+                        public void run() {
+                            Log.w(DEBUG_TAG, "Omega Shift check timed out, bailing out...");
+                            try {
+                                mRequest.abort();
+                            } catch (NullPointerException npe) {
+                                // If the request was somehow null, just ignore
+                                // it.
+                            }
+                        }
+                    };
+
+                    new Timer(true).schedule(task, CONNECTION_TIMEOUT_MS);
+                    try (CloseableHttpResponse response = client.execute(mRequest)) {
+                        // Immediately cancel the timer when it gets back.
+                        task.cancel();
+
+                        // Make sure there wasn't any sort of error.
+                        if (!mRequest.isAborted()
+                                && response.getStatusLine().getStatusCode()
+                                == HttpURLConnection.HTTP_OK) {
+                            // Otherwise, we should have exactly one character,
+                            // a one or a zero.
+                            InputStream stream = response.getEntity().getContent();
+                            int codeInt = stream.read();
+                            response.close();
+                            stream.close();
+
+                            // Finally, the moment of truth.  In ASCII, 48 is
+                            // '0', 49 is '1'.
+                            switch (codeInt) {
+                                case 48:
+                                    // It's not Omega Shift!  If we last knew it
+                                    // to be Omega Shift, invalidate it and
+                                    // redraw.
+                                    Log.d(DEBUG_TAG, "It's not Omega Shift!");
+                                    if (mOmegaShift) {
+                                        mOmegaShift = false;
+                                        mHandler.removeCallbacks(mDrawRunner);
+                                        mHandler.post(mDrawRunner);
+                                    }
+                                    break;
+                                case 49:
+                                    // It's Omega Shift!
+                                    Log.d(DEBUG_TAG, "It's Omega Shift!");
+                                    if (!mOmegaShift) {
+                                        mOmegaShift = true;
+                                        mHandler.removeCallbacks(mDrawRunner);
+                                        mHandler.post(mDrawRunner);
+                                    }
+                                    break;
+                                default:
+                                    // It's... neither?
+                                    Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
+                                    break;
+                            }
+                        }
+                    } catch (IOException ioe) {
+                        // If there's an IO exception, log it, but silently
+                        // ignore it anyway.  This might include there being no
+                        // network connection at all.
+                        Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe);
+                    } finally {
+                        // Make sure the timer got canceled no matter what.
+                        task.cancel();
+                    }
+                }).start();
             }
 
-            // Otherwise, it's off to a thread for a network connection.  This
-            // is a Wallpaper service, remember, so we're assumed to be in the
-            // foreground, so we don't need to do wacky power-saving stuff.
-            new Thread(() -> {
-                Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW");
-                // I swear there has to be a simpler way to do this, but I
-                // just wanted to stick with what I know for now...
-
-                // Build an HTTP client that can be closed.  We want to be
-                // able to bail out if it's taking too long.  This really
-                // shouldn't take much time unless this is a truly
-                // disastrous internet connection.
-                CloseableHttpClient client = HttpClients.createDefault();
-                mRequest = new HttpGet(OMEGA_CHECK_URL);
-
-                // Timer goes now!  We'll start the client immediately in the
-                // upcoming try block.
-                TimerTask task = new TimerTask() {
-                    @Override
-                    public void run() {
-                        Log.w(DEBUG_TAG, "Omega Shift check timed out, bailing out...");
-                        try {
-                            mRequest.abort();
-                        } catch (NullPointerException npe) {
-                            // If the request was somehow null, just ignore
-                            // it.
-                        }
-                    }
-                };
-                new Timer(true).schedule(task, CONNECTION_TIMEOUT_MS);
-                try(CloseableHttpResponse response = client.execute(mRequest)) {
-                    // Go!
-
-                    // Immediately cancel the timer when it gets back.
-                    task.cancel();
-
-                    // If there was any sort of error, forget about it.
-                    if(mRequest.isAborted()
-                            || response.getStatusLine().getStatusCode()
-                            != HttpURLConnection.HTTP_OK)
-                        return;
-
-                    // Otherwise, we should have exactly one character, a one
-                    // or a zero.
-                    InputStream stream = response.getEntity().getContent();
-                    int codeInt = stream.read();
-                    response.close();
-                    stream.close();
-
-                    // Finally, the moment of truth.  In ASCII, 48 is '0',
-                    // 49 is '1'.
-                    switch(codeInt) {
-                        case 48:
-                            // It's not Omega Shift!  If we last knew it to
-                            // be Omega Shift, invalidate it and redraw.
-                            Log.d(DEBUG_TAG, "It's not Omega Shift!");
-                            if(mOmegaShift) {
-                                mOmegaShift = false;
-                                mHandler.removeCallbacks(mDrawRunner);
-                                mHandler.post(mDrawRunner);
-                            }
-                            break;
-                        case 49:
-                            // It's Omega Shift!
-                            Log.d(DEBUG_TAG, "It's Omega Shift!");
-                            if(!mOmegaShift) {
-                                mOmegaShift = true;
-                                mHandler.removeCallbacks(mDrawRunner);
-                                mHandler.post(mDrawRunner);
-                            }
-                            break;
-                        default:
-                            // It's... neither?
-                            Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
-                            break;
-                    }
-
-                } catch (IOException ioe) {
-                    // If there's an IO exception, log it, but silently
-                    // ignore it anyway.  This might include there being no
-                    // network connection at all.
-                    Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe);
-                } finally {
-                    // Make sure the timer got canceled no matter what.
-                    task.cancel();
-                }
-            }).start();
+            // Update the last time we checked, since we, well, just checked.
+            mLastOmegaCheck = Calendar.getInstance().getTimeInMillis();
 
             // Reschedule here.  We'll let the thread return as need be.
             mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL);
