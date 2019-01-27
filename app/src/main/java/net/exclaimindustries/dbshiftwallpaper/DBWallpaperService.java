@@ -47,7 +47,7 @@ public class DBWallpaperService extends WallpaperService {
         NIGHTWATCH,
         /** Zeta Shift (12m-6a) */
         ZETASHIFT,
-        /** Omega Shift (whenever the API says it is; not currently used) */
+        /** Omega Shift (whenever the VST says it is) */
         OMEGASHIFT
     }
 
