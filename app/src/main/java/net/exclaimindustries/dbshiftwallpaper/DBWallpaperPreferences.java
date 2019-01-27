@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
@@ -26,15 +25,12 @@ public class DBWallpaperPreferences extends Activity {
 
             // If the user sets Omega Shift to true, throw the warning first.
             Preference omega = findPreference(DBWallpaperService.PREF_OMEGASHIFT);
-            omega.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    if(newValue.equals(Boolean.TRUE)) {
-                        new OmegaReminderDialog().show(getFragmentManager(), OMEGA_DIALOG);
-                    }
-
-                    return true;
+            omega.setOnPreferenceChangeListener((preference, newValue) -> {
+                if(newValue.equals(Boolean.TRUE)) {
+                    new OmegaReminderDialog().show(getFragmentManager(), OMEGA_DIALOG);
                 }
+
+                return true;
             });
         }
     }
@@ -54,12 +50,7 @@ public class DBWallpaperPreferences extends Activity {
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             AlertDialog.Builder build = new AlertDialog.Builder(getActivity())
                 .setMessage(R.string.omega_warning)
-                .setPositiveButton(R.string.thats_fair, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
+                .setPositiveButton(R.string.thats_fair, (dialog, which) -> dialog.dismiss());
 
             return build.create();
         }

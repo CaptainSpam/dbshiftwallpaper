@@ -67,23 +67,13 @@ public class DBWallpaperService extends WallpaperService {
         // UI thread.
         private final Handler mHandler = new Handler();
 
-        // This Runnable will thus be posted to said Handler...
-        private final Runnable mDrawRunner = new Runnable() {
-            @Override
-            public void run() {
-                // ...meaning this gets run on the UI thread, so we can do a
-                // bunch of UI-ish things.  We'll catch up there.
-                draw();
-            }
-        };
+        // This Runnable will thus be posted to said Handler, meaning this gets
+        // run on the UI thread, so we can do a bunch of UI-ish things.  We'll
+        // catch up there.
+        private final Runnable mDrawRunner = this::draw;
 
         // This Runnable gets called every so often to check for Omega Shift.
-        private final Runnable mOmegaRunner = new Runnable() {
-            @Override
-            public void run() {
-                checkOmegaShift();
-            }
-        };
+        private final Runnable mOmegaRunner = this::checkOmegaShift;
 
         // Whether or not we were visible, last we checked.  Destroying the
         // surface counts as "becoming not visible".
@@ -239,105 +229,88 @@ public class DBWallpaperService extends WallpaperService {
             // Otherwise, it's off to a thread for a network connection.  This
             // is a Wallpaper service, remember, so we're assumed to be in the
             // foreground, so we don't need to do wacky power-saving stuff.
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW");
-                    // I swear there has to be a simpler way to do this, but I
-                    // just wanted to stick with what I know for now...
+            new Thread(() -> {
+                Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW");
+                // I swear there has to be a simpler way to do this, but I
+                // just wanted to stick with what I know for now...
 
-                    // Build an HTTP client that can be closed.  We want to be
-                    // able to bail out if it's taking too long.  This really
-                    // shouldn't take much time unless this is a truly
-                    // disastrous internet connection.
-                    CloseableHttpClient client = HttpClients.createDefault();
-                    mRequest = new HttpGet(OMEGA_CHECK_URL);
+                // Build an HTTP client that can be closed.  We want to be
+                // able to bail out if it's taking too long.  This really
+                // shouldn't take much time unless this is a truly
+                // disastrous internet connection.
+                CloseableHttpClient client = HttpClients.createDefault();
+                mRequest = new HttpGet(OMEGA_CHECK_URL);
 
-                    CloseableHttpResponse response = null;
-
-                    // Get ready to time out if need be.
-                    TimerTask task = new TimerTask() {
-                        @Override
-                        public void run() {
-                            Log.w(DEBUG_TAG, "Omega Shift check timed out, bailing out...");
-                            try {
-                                mRequest.abort();
-                            } catch (NullPointerException npe) {
-                                // If the request was somehow null, just ignore
-                                // it.
-                            }
+                // Timer goes now!  We'll start the client immediately in the
+                // upcoming try block.
+                TimerTask task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        Log.w(DEBUG_TAG, "Omega Shift check timed out, bailing out...");
+                        try {
+                            mRequest.abort();
+                        } catch (NullPointerException npe) {
+                            // If the request was somehow null, just ignore
+                            // it.
                         }
-                    };
-
-                    // Timer goes now!  We'll start the client immediately in the
-                    // upcoming try block.
-                    new Timer(true).schedule(task, CONNECTION_TIMEOUT_MS);
-
-                    try {
-                        // Go!
-                        response = client.execute(mRequest);
-
-                        // Immediately cancel the timer when it gets back.
-                        task.cancel();
-
-                        // If there was any sort of error, forget about it.
-                        if(mRequest.isAborted()
-                                || response.getStatusLine().getStatusCode()
-                                    != HttpURLConnection.HTTP_OK)
-                            return;
-
-                        // Otherwise, we should have exactly one character, a one
-                        // or a zero.
-                        InputStream stream = response.getEntity().getContent();
-                        int codeInt = stream.read();
-                        response.close();
-                        stream.close();
-
-                        // Finally, the moment of truth.  In ASCII, 48 is '0',
-                        // 49 is '1'.
-                        switch(codeInt) {
-                            case 48:
-                                // It's not Omega Shift!  If we last knew it to
-                                // be Omega Shift, invalidate it and redraw.
-                                Log.d(DEBUG_TAG, "It's not Omega Shift!");
-                                if(mOmegaShift) {
-                                    mOmegaShift = false;
-                                    mHandler.removeCallbacks(mDrawRunner);
-                                    mHandler.post(mDrawRunner);
-                                }
-                                break;
-                            case 49:
-                                // It's Omega Shift!
-                                Log.d(DEBUG_TAG, "It's Omega Shift!");
-                                if(!mOmegaShift) {
-                                    mOmegaShift = true;
-                                    mHandler.removeCallbacks(mDrawRunner);
-                                    mHandler.post(mDrawRunner);
-                                }
-                                break;
-                            default:
-                                // It's... neither?
-                                Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
-                                break;
-                        }
-
-                    } catch (IOException ioe) {
-                        // If there's an IO exception, log it, but silently
-                        // ignore it anyway.  This might include there being no
-                        // network connection at all.
-                        Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe);
-                    } finally {
-                        if(response != null) {
-                            try {
-                                response.close();
-                            } catch(Exception e) {
-                                // Meh.
-                            }
-                        }
-
-                        // Make sure the timer got canceled no matter what.
-                        task.cancel();
                     }
+                };
+                new Timer(true).schedule(task, CONNECTION_TIMEOUT_MS);
+                try(CloseableHttpResponse response = client.execute(mRequest)) {
+                    // Go!
+
+                    // Immediately cancel the timer when it gets back.
+                    task.cancel();
+
+                    // If there was any sort of error, forget about it.
+                    if(mRequest.isAborted()
+                            || response.getStatusLine().getStatusCode()
+                            != HttpURLConnection.HTTP_OK)
+                        return;
+
+                    // Otherwise, we should have exactly one character, a one
+                    // or a zero.
+                    InputStream stream = response.getEntity().getContent();
+                    int codeInt = stream.read();
+                    response.close();
+                    stream.close();
+
+                    // Finally, the moment of truth.  In ASCII, 48 is '0',
+                    // 49 is '1'.
+                    switch(codeInt) {
+                        case 48:
+                            // It's not Omega Shift!  If we last knew it to
+                            // be Omega Shift, invalidate it and redraw.
+                            Log.d(DEBUG_TAG, "It's not Omega Shift!");
+                            if(mOmegaShift) {
+                                mOmegaShift = false;
+                                mHandler.removeCallbacks(mDrawRunner);
+                                mHandler.post(mDrawRunner);
+                            }
+                            break;
+                        case 49:
+                            // It's Omega Shift!
+                            Log.d(DEBUG_TAG, "It's Omega Shift!");
+                            if(!mOmegaShift) {
+                                mOmegaShift = true;
+                                mHandler.removeCallbacks(mDrawRunner);
+                                mHandler.post(mDrawRunner);
+                            }
+                            break;
+                        default:
+                            // It's... neither?
+                            Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
+                            break;
+                    }
+
+                } catch (IOException ioe) {
+                    // If there's an IO exception, log it, but silently
+                    // ignore it anyway.  This might include there being no
+                    // network connection at all.
+                    Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe);
+                } finally {
+                    // Make sure the timer got canceled no matter what.
+                    task.cancel();
                 }
             }).start();
 
