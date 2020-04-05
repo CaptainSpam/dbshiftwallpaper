@@ -196,11 +196,15 @@ public class DBWallpaperService extends WallpaperService {
                     Calendar.getInstance().getTimeInMillis() - mLastOmegaCheck;
 
             if(timeDifference > OMEGA_INTERVAL) {
-                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference + " ago, checking now...");
+                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference +
+                        " ago, checking now...");
                 // If we're within the timeout, run the Omega check immediately.
                 mHandler.post(mOmegaRunner);
             } else {
-                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference + " ago, rescheduling with a delay of " + (OMEGA_INTERVAL - timeDifference) + "...");
+                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference +
+                        " ago, rescheduling with a delay of " + 
+                        (OMEGA_INTERVAL - timeDifference) +
+                        "...");
                 // Otherwise, schedule it for whenever it should run next.
                 mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL - timeDifference);
             }
@@ -328,7 +332,8 @@ public class DBWallpaperService extends WallpaperService {
                                     break;
                                 default:
                                     // It's... neither?
-                                    Log.w(DEBUG_TAG, "Network returned invalid character " + codeInt + ", ignoring.");
+                                    Log.w(DEBUG_TAG, "Network returned invalid character " +
+                                            codeInt + ", ignoring.");
                                     break;
                             }
                         }
@@ -368,11 +373,11 @@ public class DBWallpaperService extends WallpaperService {
             int hour = cal.get(Calendar.HOUR_OF_DAY);
 
             // The Zeta begins; the watch is helpless to stop it.
-            if(hour >= 0 && hour < 6) return DBShift.ZETASHIFT;
+            if(hour < 6) return DBShift.ZETASHIFT;
             // The dawn comes and fights back the powers of twilight.
-            if(hour >= 6 && hour < 12) return DBShift.DAWNGUARD;
+            if(hour < 12) return DBShift.DAWNGUARD;
             // The bus takes flight, ever vigilant.
-            if(hour >= 12 && hour < 18) return DBShift.ALPHAFLIGHT;
+            if(hour < 18) return DBShift.ALPHAFLIGHT;
             // The watch arrives; the Moonbase is at peace.
             return DBShift.NIGHTWATCH;
         }
@@ -440,7 +445,8 @@ public class DBWallpaperService extends WallpaperService {
                     return R.drawable.dbomegashift;
             }
 
-            Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " + shift.name() + ", fell out of switch statement?");
+            Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " +
+                    shift.name() + ", fell out of switch statement?");
             return -1;
         }
 
@@ -531,7 +537,8 @@ public class DBWallpaperService extends WallpaperService {
                 canvas = holder.lockCanvas();
 
                 if(canvas != null) {
-                    Log.d(DEBUG_TAG, "mLastDraw is " + mLastDraw.name() + "; mNextDraw is " + mNextDraw.name() + "; shift is " + shift.name());
+                    Log.d(DEBUG_TAG, "mLastDraw is " + mLastDraw.name() + "; mNextDraw is " +
+                            mNextDraw.name() + "; shift is " + shift.name());
 
                     if(mLastDraw != mNextDraw && mNextDraw != shift) {
                         // If all three of mLastDraw, mNextDraw, and shift are
@@ -551,7 +558,8 @@ public class DBWallpaperService extends WallpaperService {
                         // hourly check where it didn't change or we came back
                         // from a visibility change.  Either way, just draw the
                         // shift banner.
-                        Log.d(DEBUG_TAG, "Either initial shift or holding on last shift (" + shift.name() + ")");
+                        Log.d(DEBUG_TAG, "Either initial shift or holding on last shift (" +
+                                shift.name() + ")");
                         drawShift(canvas, shift, 1.0f);
                     } else {
                         // If the shift is different, we're crossfading.
@@ -562,9 +570,11 @@ public class DBWallpaperService extends WallpaperService {
                             // now, so let's set up a couple values.
                             mStopFadeAt = cal.getTimeInMillis() + FADE_TIME;
                             mNextDraw = shift;
-                            Log.d(DEBUG_TAG, "This is a new fade, mStopFadeAt is now " + mStopFadeAt + " and fading to " + mNextDraw.name());
+                            Log.d(DEBUG_TAG, "This is a new fade, mStopFadeAt is now " +
+                                    mStopFadeAt + " and fading to " + mNextDraw.name());
                         }
-                        Log.d(DEBUG_TAG, "Fading from " + mLastDraw.name() + " to " + mNextDraw.name());
+                        Log.d(DEBUG_TAG, "Fading from " +
+                                mLastDraw.name() + " to " + mNextDraw.name());
 
                         // Draw the old shift first.
                         drawShift(canvas, mLastDraw, 1.0f);
@@ -635,7 +645,8 @@ public class DBWallpaperService extends WallpaperService {
 
             // Schedule it!
             if(mVisible) {
-                Log.d(DEBUG_TAG, "Scheduling next draw in " + nextDrawDelay + "ms");
+                Log.d(DEBUG_TAG, "Scheduling next draw in " +
+                        nextDrawDelay + "ms");
                 mHandler.postDelayed(mDrawRunner, nextDrawDelay);
             }
         }
