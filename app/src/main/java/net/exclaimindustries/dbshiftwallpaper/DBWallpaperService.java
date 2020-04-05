@@ -3,6 +3,7 @@ package net.exclaimindustries.dbshiftwallpaper;
 import android.annotation.TargetApi;
 import android.app.WallpaperColors;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,6 +13,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
+import android.support.annotation.ColorRes;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -385,20 +387,36 @@ public class DBWallpaperService extends WallpaperService {
         private int getBackgroundColor(@NonNull DBShift shift) {
             switch(shift) {
                 case DAWNGUARD:
-                    return 0xffef8131;
+                    return resolveColor(R.color.background_dawnguard);
                 case ALPHAFLIGHT:
-                    return 0xffb1222a;
+                    return resolveColor(R.color.background_alphaflight);
                 case NIGHTWATCH:
-                    return 0xff1574b7;
+                    return resolveColor(R.color.background_nightwatch);
                 case ZETASHIFT:
-                    return 0xff603987;
+                    return resolveColor(R.color.background_zetashift);
                 case OMEGASHIFT:
-                    return 0x00000000;
+                    return resolveColor(R.color.background_omegashift);
             }
 
-            Log.e(DEBUG_TAG, "Tried to get background color for shift " + shift.name() + ", fell out of switch statement?");
+            Log.e(DEBUG_TAG, "Tried to get background color for shift "
+                    + shift.name() + ", fell out of switch statement?");
             return 0;
         }
+
+        private int resolveColor(@ColorRes int color) {
+            // Because getColor with one param is deprecated but it complains if
+            // getColor with two params is used on anything less than
+            // Marshmallow, that's why.
+            Resources res = getResources();
+
+            if(Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                //noinspection deprecation
+                return res.getColor(color);
+            } else {
+                return res.getColor(color, null);
+            }
+        }
+
 
         /**
          * Gets the Drawable resource ID for a given shift.  In the current
@@ -650,26 +668,26 @@ public class DBWallpaperService extends WallpaperService {
                     // The top half of Dawnguard is the background, so the
                     // bottom half will be the secondary.  The yellow banner
                     // trim is tertiary.
-                    secondary = Color.valueOf(0xffc16b31);
-                    tertiary = Color.valueOf(0xffebe24c);
+                    secondary = Color.valueOf(resolveColor(R.color.secondary_dawnguard));
+                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_dawnguard));
                     break;
                 case ALPHAFLIGHT:
                     // Alpha Flight has only three colors: The background, the
                     // pale sinister, and the white for the wing.
-                    secondary = Color.valueOf(0xff741216);
-                    tertiary = Color.valueOf(Color.WHITE);
+                    secondary = Color.valueOf(resolveColor(R.color.secondary_alphaflight));
+                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_alphaflight));
                     break;
                 case NIGHTWATCH:
                     // Night Watch has the blue of the moon and the lighter
                     // trim.
-                    secondary = Color.valueOf(0xff27245f);
-                    tertiary = Color.valueOf(0xff2cabdf);
+                    secondary = Color.valueOf(resolveColor(R.color.secondary_nightwatch));
+                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_nightwatch));
                     break;
                 case ZETASHIFT:
                     // Zeta Shift is similar to Alpha Flight, where it only has
                     // three colors.  Again, let's use white as the tertiary.
-                    secondary = Color.valueOf(0xff9166a9);
-                    tertiary = Color.valueOf(Color.WHITE);
+                    secondary = Color.valueOf(resolveColor(R.color.secondary_zetashift));
+                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_zetashift));
                     break;
                 case OMEGASHIFT:
                     // Omega Shift is tricky.  It has all four banner colors,
@@ -677,8 +695,8 @@ public class DBWallpaperService extends WallpaperService {
                     // better idea, let's just go with... oh... the blue of
                     // Night Watch's moon.  The tertiary is still just the white
                     // of the omega.
-                    secondary = Color.valueOf(0xff27245f);
-                    tertiary = Color.valueOf(Color.WHITE);
+                    secondary = Color.valueOf(resolveColor(R.color.secondary_omegashift));
+                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_omegashift));
                     break;
                 case INVALID:
                 default:

@@ -3,4 +3,22 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+
+    <color name="background_dawnguard">#ef8131</color>
+    <color name="background_alphaflight">#b1222a</color>
+    <color name="background_nightwatch">#1574b7</color>
+    <color name="background_zetashift">#603987</color>
+    <color name="background_omegashift">#000000</color>
+
+    <color name="secondary_dawnguard">#c16b31</color>
+    <color name="secondary_alphaflight">#741216</color>
+    <color name="secondary_nightwatch">#27245f</color>
+    <color name="secondary_zetashift">#9166a9</color>
+    <color name="secondary_omegashift">#27245f</color>
+
+    <color name="tertiary_dawnguard">#ebe24c</color>
+    <color name="tertiary_alphaflight">#fff</color>
+    <color name="tertiary_nightwatch">#2cabdf</color>
+    <color name="tertiary_zetashift">#fff</color>
+    <color name="tertiary_omegashift">#fff</color>
 </resources>
