@@ -184,15 +184,13 @@ class DBWallpaperService : WallpaperService() {
             val timeDifference =
                     Calendar.getInstance().timeInMillis - mLastOmegaCheck
             if (timeDifference > OMEGA_INTERVAL) {
-                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference +
-                        " ago, checking now...")
+                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference " +
+                        "ago, checking now...")
                 // If we're within the timeout, run the Omega check immediately.
                 mHandler.post(mOmegaRunner)
             } else {
-                Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference +
-                        " ago, rescheduling with a delay of " +
-                        (OMEGA_INTERVAL - timeDifference) +
-                        "...")
+                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference " +
+                        "ago, rescheduling with a delay of ${OMEGA_INTERVAL - timeDifference}...")
                 // Otherwise, schedule it for whenever it should run next.
                 mHandler.postDelayed(mOmegaRunner,
                                      OMEGA_INTERVAL - timeDifference)
@@ -300,17 +298,17 @@ class DBWallpaperService : WallpaperService() {
                             if (!mRequest!!.isAborted
                                     && response.statusLine.statusCode
                                     == HttpURLConnection.HTTP_OK) {
-                                // Otherwise, we should have exactly one character,
-                                // a one or a zero.
+                                // Otherwise, we should have exactly one
+                                // character, a one or a zero.
                                 val stream = response.entity.content
                                 val codeInt = stream.read()
                                 response.close()
                                 stream.close()
                                 when (codeInt) {
                                     48 -> {
-                                        // It's not Omega Shift!  If we last knew it
-                                        // to be Omega Shift, invalidate it and
-                                        // redraw.
+                                        // It's not Omega Shift!  If we last
+                                        // knew it to be Omega Shift, invalidate
+                                        // it and redraw.
                                         Log.d(DEBUG_TAG,
                                               "It's not Omega Shift!")
                                         if (mOmegaShift) {
@@ -330,10 +328,10 @@ class DBWallpaperService : WallpaperService() {
                                             mHandler.post(mDrawRunner)
                                         }
                                     }
-                                    else ->                                     // It's... neither?
+                                    else ->
+                                        // It's... neither?
                                         Log.w(DEBUG_TAG,
-                                              "Network returned invalid character " +
-                                                      codeInt + ", ignoring.")
+                                              "Network returned invalid character ${codeInt}, ignoring.")
                                 }
                             }
                         }
@@ -406,8 +404,8 @@ class DBWallpaperService : WallpaperService() {
                                                                R.color.background_omegashift,
                                                                null)
                 else -> {
-                    Log.e(DEBUG_TAG, "Tried to get background color for shift "
-                            + shift.name + ", fell out of switch statement?")
+                    Log.e(DEBUG_TAG, "Tried to get background color for shift " +
+                            "${shift.name} fell out of switch statement?")
                     0
                 }
             }
@@ -430,7 +428,7 @@ class DBWallpaperService : WallpaperService() {
                 DBShift.OMEGASHIFT -> R.drawable.dbomegashift
                 else -> {
                     Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " +
-                            shift.name + ", fell out of switch statement?")
+                            "${shift.name}, fell out of switch statement?")
                     -1
                 }
             }
@@ -474,7 +472,8 @@ class DBWallpaperService : WallpaperService() {
             // only need to care that it's a Drawable.
             val d: Drawable?
             d =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) ResourcesCompat.getDrawable(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                        ResourcesCompat.getDrawable(
                             resources, shiftBanner,
                             null) else VectorDrawableCompat.create(resources,
                                                                    shiftBanner,
@@ -484,7 +483,8 @@ class DBWallpaperService : WallpaperService() {
             if (d == null) {
                 Log.e(DEBUG_TAG,
                       "The shift banner Drawable is somehow null! (" +
-                              (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) "Lollipop or greater; should've been a VectorDrawable and also should've thrown an exception?" else "Pre-Lollipop; should've been a VectorDrawableCompat, must've been a parse error?") +
+                              (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) "Lollipop or greater; should've been a VectorDrawable and also should've thrown an exception?"
+                              else "Pre-Lollipop; should've been a VectorDrawableCompat, must've been a parse error?") +
                               ")")
                 return
             }
@@ -525,8 +525,8 @@ class DBWallpaperService : WallpaperService() {
                 canvas = holder.lockCanvas()
                 if (canvas != null) {
                     Log.d(DEBUG_TAG,
-                          "mLastDraw is " + mLastDraw.name + "; mNextDraw is " +
-                                  mNextDraw.name + "; shift is " + shift.name)
+                          "mLastDraw is ${mLastDraw.name}; mNextDraw is " +
+                                  "${mNextDraw.name}; shift is ${shift.name}")
                     if (mLastDraw != mNextDraw && mNextDraw != shift) {
                         // If all three of mLastDraw, mNextDraw, and shift are
                         // different, that means we somehow got a shift change
@@ -545,8 +545,7 @@ class DBWallpaperService : WallpaperService() {
                         // from a visibility change.  Either way, just draw the
                         // shift banner.
                         Log.d(DEBUG_TAG,
-                              "Either initial shift or holding on last shift (" +
-                                      shift.name + ")")
+                              "Either initial shift or holding on last shift (${shift.name})")
                         drawShift(canvas, shift, 1.0f)
                     } else {
                         // If the shift is different, we're crossfading.
@@ -559,10 +558,9 @@ class DBWallpaperService : WallpaperService() {
                             mNextDraw = shift
                             Log.d(DEBUG_TAG,
                                   "This is a new fade, mStopFadeAt is now " +
-                                          mStopFadeAt + " and fading to " + mNextDraw.name)
+                                          "$mStopFadeAt and fading to ${mNextDraw.name}")
                         }
-                        Log.d(DEBUG_TAG, "Fading from " +
-                                mLastDraw.name + " to " + mNextDraw.name)
+                        Log.d(DEBUG_TAG, "Fading from ${mLastDraw.name} to ${mNextDraw.name}")
 
                         // Draw the old shift first.
                         drawShift(canvas, mLastDraw, 1.0f)
@@ -635,8 +633,7 @@ class DBWallpaperService : WallpaperService() {
 
             // Schedule it!
             if (mVisible) {
-                Log.d(DEBUG_TAG, "Scheduling next draw in " +
-                        nextDrawDelay + "ms")
+                Log.d(DEBUG_TAG, "Scheduling next draw in ${nextDrawDelay}ms")
                 mHandler.postDelayed(mDrawRunner, nextDrawDelay)
             }
         }
