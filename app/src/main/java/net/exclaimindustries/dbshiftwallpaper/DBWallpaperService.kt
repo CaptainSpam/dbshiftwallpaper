@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Handler
 import android.service.wallpaper.WallpaperService
@@ -48,24 +47,21 @@ class DBWallpaperService : WallpaperService() {
         const val PREF_OMEGASHIFT = "AllowOmegaShift"
         const val PREF_BEESHED = "RustproofBeeShed"
 
-        // The time between frames in the fade, in ms.  At present, this is a
-        // 30fps fade.
+        // The time between frames in the fade, in ms.  At present, this is a 30fps fade.
         private const val FRAME_TIME = 1000L / 30L
 
         // The amount of time a fade should take.
         private const val FADE_TIME = 1000L
 
         // We'll use the VST's Omega Shift checker for simplicity.
-        private const val OMEGA_CHECK_URL =
-                "http://vst.ninja/Resources/isitomegashift.html"
+        private const val OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html"
 
         // Give it ten seconds to connect.  It shouldn't take that long.
         private const val CONNECTION_TIMEOUT_SEC = 10
-        private const val CONNECTION_TIMEOUT_MS =
-                CONNECTION_TIMEOUT_SEC * 1000
+        private const val CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000
 
-        // The amount of time between Omega Shift checks.  We'll go with (at
-        // least) ten minutes for now.
+        // The amount of time between Omega Shift checks.  We'll go with (at least) ten minutes for
+        // now.
         private const val OMEGA_INTERVAL = 600000L
     }
 
@@ -75,27 +71,24 @@ class DBWallpaperService : WallpaperService() {
     }
 
     private inner class DBWallpaperEngine : Engine() {
-        // We'll get a Handler at creation time.  Said Handler should be on the
-        // UI thread.
+        // We'll get a Handler at creation time.  Said Handler should be on the UI thread.
         private val mHandler = Handler()
 
-        // This Runnable will thus be posted to said Handler, meaning this gets
-        // run on the UI thread, so we can do a bunch of UI-ish things.  We'll
-        // catch up there.
+        // This Runnable will thus be posted to said Handler, meaning this gets run on the UI
+        // thread, so we can do a bunch of UI-ish things.  We'll catch up there.
         private val mDrawRunner = Runnable { draw() }
 
         // This Runnable gets called every so often to check for Omega Shift.
         private val mOmegaRunner = Runnable { checkOmegaShift() }
 
-        // Whether or not we were visible, last we checked.  Destroying the
-        // surface counts as "becoming not visible".
+        // Whether or not we were visible, last we checked.  Destroying the surface counts as
+        // "becoming not visible".
         private var mVisible = false
 
         // Whether or not it's Omega Shift right now.
         private var mOmegaShift = false
 
-        // Keep hold of this Paint.  We don't want to have to keep re-allocating
-        // it.
+        // Keep hold of this Paint.  We don't want to have to keep re-allocating it.
         private val mPaint = Paint()
 
         // The last shift we drew (for dissolve purposes).
@@ -104,21 +97,20 @@ class DBWallpaperService : WallpaperService() {
         // The shift to which we're transitioning (also for dissolve purposes).
         private var mNextDraw = DBShift.INVALID
 
-        // The system time at which we stop the current fade.  This should be
-        // one second past when we start it.
+        // The system time at which we stop the current fade.  This should be one second past when
+        // we start it.
         private var mStopFadeAt = 1L
 
-        // The last time we checked for Omega Shift.  We'll check against this
-        // whenever we get a new surface.  Hopefully the service itself doesn't
-        // get destroyed all the time, else this won't do anything.
+        // The last time we checked for Omega Shift.  We'll check against this whenever we get a new
+        // surface.  Hopefully the service itself doesn't get destroyed all the time, else this
+        // won't do anything.
         private var mLastOmegaCheck = 0L
         private var mRequest: HttpGet? = null
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
 
-            // This is a new Surface, so the previous last-known shift is no
-            // longer valid.
+            // This is a new Surface, so the previous last-known shift is no longer valid.
             mLastDraw = DBShift.INVALID
 
             // Presumably we're able to draw now.
@@ -131,8 +123,7 @@ class DBWallpaperService : WallpaperService() {
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             super.onSurfaceDestroyed(holder)
 
-            // As stated earlier, destroying the surface means we're not visible
-            // anymore.
+            // As stated earlier, destroying the surface means we're not visible anymore.
             mVisible = false
 
             // Shut off any callbacks.
@@ -144,13 +135,12 @@ class DBWallpaperService : WallpaperService() {
                                       width: Int, height: Int) {
             super.onSurfaceChanged(holder, format, width, height)
 
-            // If the surface changed, chances are this is a device where the
-            // home screen can be rotated, and it just got rotated.  In those
-            // cases, we don't know for sure if we got onVisibilityChanged, so
-            // let's reset the handler and post it up again just in case.  We
-            // might immediately get onVisibilityChanged, but the worst case
-            // there is we just draw two frames in a row.  We also don't care
-            // about the new width or height, those will be found during draw().
+            // If the surface changed, chances are this is a device where the home screen can be
+            // rotated, and it just got rotated.  In those cases, we don't know for sure if we got
+            // onVisibilityChanged, so let's reset the handler and post it up again just in case.
+            // We might immediately get onVisibilityChanged, but the worst case there is we just
+            // draw two frames in a row.  We also don't care about the new width or height, those
+            // will be found during draw().
             mHandler.removeCallbacks(mDrawRunner)
             mHandler.removeCallbacks(mOmegaRunner)
             mHandler.post(mDrawRunner)
@@ -172,28 +162,24 @@ class DBWallpaperService : WallpaperService() {
         }
 
         /**
-         * Properly either sends the Omega Shift checker off for execution or
-         * schedules it to happen later if the last check was too recent.
+         * Properly either sends the Omega Shift checker off for execution or schedules it to happen
+         * later if the last check was too recent.
          */
         private fun rescheduleOmegaShift() {
-            // Figure out how long it's been since the last check.  If the
-            // service has just been started, mLastOmegaCheck will be zero,
-            // resulting in what SHOULD always be something greater than
-            // OMEGA_INTERVAL, assuming the user hasn't sent their mobile device
-            // back in time.
-            val timeDifference =
-                    Calendar.getInstance().timeInMillis - mLastOmegaCheck
+            // Figure out how long it's been since the last check.  If the service has just been
+            // started, mLastOmegaCheck will be zero, resulting in what SHOULD always be something
+            // greater than OMEGA_INTERVAL, assuming the user hasn't sent their mobile device back
+            // in time.
+            val timeDifference = Calendar.getInstance().timeInMillis - mLastOmegaCheck
             if (timeDifference > OMEGA_INTERVAL) {
-                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference " +
-                        "ago, checking now...")
+                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference ago, checking now...")
                 // If we're within the timeout, run the Omega check immediately.
                 mHandler.post(mOmegaRunner)
             } else {
-                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference " +
-                        "ago, rescheduling with a delay of ${OMEGA_INTERVAL - timeDifference}...")
+                Log.d(DEBUG_TAG, "Last Omega check was $timeDifference ago, rescheduling " +
+                        "with a delay of ${OMEGA_INTERVAL - timeDifference}...")
                 // Otherwise, schedule it for whenever it should run next.
-                mHandler.postDelayed(mOmegaRunner,
-                                     OMEGA_INTERVAL - timeDifference)
+                mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL - timeDifference)
             }
         }
 
@@ -201,80 +187,69 @@ class DBWallpaperService : WallpaperService() {
          * Whether or not the user wants to use the Rustproof Bee Shed banners.
          */
         private val useBeeShed: Boolean
-            get() = PreferenceManager.getDefaultSharedPreferences(
-                    this@DBWallpaperService).getBoolean(PREF_BEESHED, false)
+            get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
+                    .getBoolean(PREF_BEESHED, false)
 
         /**
-         * Grab the current calendar.  It will be adjusted to the appropriate
-         * timezone depending on prefs.
+         * Grab the current calendar.  It will be adjusted to the appropriate timezone depending on
+         * prefs.
          *
          * @return a timezone-adjusted Calendar
          */
         private fun makeCalendar(): Calendar {
             // Prefs up!
-            val prefs = PreferenceManager.getDefaultSharedPreferences(
-                    this@DBWallpaperService)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
 
-            // Yes, I'm certain SOMEBODY will want to go completely against the
-            // spirit of things and ask for the shift in their OWN timezone, NOT
-            // Moonbase Time.
+            // Yes, I'm certain SOMEBODY will want to go completely against the spirit of things and
+            // ask for the shift in their OWN timezone, NOT Moonbase Time.
             return if (prefs.getBoolean(PREF_TIMEZONE, true)) {
-                // Fortunately in this case, the user knows what's good and
-                // right with the world.
-                Calendar.getInstance(
-                        TimeZone.getTimeZone("America/Los_Angeles"))
+                // Fortunately in this case, the user knows what's good and right with the world.
+                Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"))
             } else {
-                // In this case, the user gets a Shame Ticket.  A future version
-                // should implement Shame Tickets.
+                // In this case, the user gets a Shame Ticket.  A future version should implement
+                // Shame Tickets.
                 Calendar.getInstance()
             }
         }
 
         /**
-         * Checks if it's Omega Shift time, preferences permitting.  If
-         * permitting, this will entail a network connection.
+         * Checks if it's Omega Shift time, preferences permitting.  If permitting, this will entail
+         * a network connection.
          */
         private fun checkOmegaShift() {
-            // Update the last checked time.  We're checking right now!
-
             // Get a calendar.  We need to know if it's November.
             val month = Calendar.getInstance()[Calendar.MONTH]
 
             // PREFS!!!
-            val prefs = PreferenceManager.getDefaultSharedPreferences(
-                    this@DBWallpaperService)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
 
-            // If it's not November, it's not Desert Bus time, and thus it can't
-            // be Omega Shift.  Also, if the user doesn't want Omega Shift, it
-            // won't be Omega Shift.
-            if (month != Calendar.NOVEMBER || !prefs.getBoolean(PREF_OMEGASHIFT,
-                                                                false)) {
-                // If Omega Shift is supposed to be off but the last-drawn shift
-                // WAS Omega Shift, call a redraw.
+            // If it's not November, it's not Desert Bus time, and thus it can't be Omega Shift.
+            // Also, if the user doesn't want Omega Shift, it won't be Omega Shift.
+            if (month != Calendar.NOVEMBER || !prefs.getBoolean(PREF_OMEGASHIFT, false)) {
+                // If Omega Shift is supposed to be off but the last-drawn shift WAS Omega Shift,
+                // call a redraw.
                 Log.d(DEBUG_TAG, "We're not checking Omega Shift right now.")
                 if (mOmegaShift) {
                     mOmegaShift = false
                     mHandler.post(mDrawRunner)
                 }
             } else {
-                // Otherwise, it's off to a thread for a network connection.
-                // This is a Wallpaper service, remember, so we're assumed to be
-                // in the foreground, so we don't need to do wacky power-saving
-                // stuff.
+                // Otherwise, it's off to a thread for a network connection.  This is a Wallpaper
+                // service, remember, so we're assumed to be in the foreground, so we don't need to
+                // do wacky power-saving stuff.
                 Thread {
                     Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW")
-                    // I swear there has to be a simpler way to do this, but I
-                    // just wanted to stick with what I know for now...
+                    // I swear there has to be a simpler way to do this, but I just wanted to stick
+                    // with what I know for now...
 
-                    // Build an HTTP client that can be closed.  We want to be
-                    // able to bail out if it's taking too long.  This really
-                    // shouldn't take much time unless this is a truly
-                    // disastrous internet connection.
+                    // Build an HTTP client that can be closed.  We want to be able to bail out if
+                    // it's taking too long.  This really shouldn't take much time unless this is a
+                    // truly disastrous internet connection.
                     val client = HttpClients.createDefault()
                     mRequest = HttpGet(OMEGA_CHECK_URL)
 
-                    // Timer goes now!  We'll start the client immediately in
-                    // the upcoming try block.
+                    // Timer goes now!  We'll start the client immediately in the upcoming try
+                    // block.
                     val task: TimerTask = object : TimerTask() {
                         override fun run() {
                             Log.w(DEBUG_TAG,
@@ -282,13 +257,11 @@ class DBWallpaperService : WallpaperService() {
                             try {
                                 mRequest!!.abort()
                             } catch (npe: NullPointerException) {
-                                // If the request was somehow null, just ignore
-                                // it.
+                                // If the request was somehow null, just ignore it.
                             }
                         }
                     }
-                    Timer(true).schedule(task,
-                                         Companion.CONNECTION_TIMEOUT_MS.toLong())
+                    Timer(true).schedule(task, CONNECTION_TIMEOUT_MS.toLong())
                     try {
                         client.execute(mRequest).use { response ->
                             // Immediately cancel the timer when it gets back.
@@ -298,23 +271,19 @@ class DBWallpaperService : WallpaperService() {
                             if (!mRequest!!.isAborted
                                     && response.statusLine.statusCode
                                     == HttpURLConnection.HTTP_OK) {
-                                // Otherwise, we should have exactly one
-                                // character, a one or a zero.
+                                // Otherwise, we should have exactly one character, a one or a zero.
                                 val stream = response.entity.content
                                 val codeInt = stream.read()
                                 response.close()
                                 stream.close()
                                 when (codeInt) {
                                     48 -> {
-                                        // It's not Omega Shift!  If we last
-                                        // knew it to be Omega Shift, invalidate
-                                        // it and redraw.
-                                        Log.d(DEBUG_TAG,
-                                              "It's not Omega Shift!")
+                                        // It's not Omega Shift!  If we last knew it to be Omega
+                                        // Shift, invalidate it and redraw.
+                                        Log.d(DEBUG_TAG, "It's not Omega Shift!")
                                         if (mOmegaShift) {
                                             mOmegaShift = false
-                                            mHandler.removeCallbacks(
-                                                    mDrawRunner)
+                                            mHandler.removeCallbacks(mDrawRunner)
                                             mHandler.post(mDrawRunner)
                                         }
                                     }
@@ -323,8 +292,7 @@ class DBWallpaperService : WallpaperService() {
                                         Log.d(DEBUG_TAG, "It's Omega Shift!")
                                         if (!mOmegaShift) {
                                             mOmegaShift = true
-                                            mHandler.removeCallbacks(
-                                                    mDrawRunner)
+                                            mHandler.removeCallbacks(mDrawRunner)
                                             mHandler.post(mDrawRunner)
                                         }
                                     }
@@ -336,12 +304,9 @@ class DBWallpaperService : WallpaperService() {
                             }
                         }
                     } catch (ioe: IOException) {
-                        // If there's an IO exception, log it, but silently
-                        // ignore it anyway.  This might include there being no
-                        // network connection at all.
-                        Log.w(DEBUG_TAG,
-                              "Some manner of IOException happened, ignoring.",
-                              ioe)
+                        // If there's an IO exception, log it, but silently ignore it anyway.  This
+                        // might include there being no network connection at all.
+                        Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe)
                     } finally {
                         // Make sure the timer got canceled no matter what.
                         task.cancel()
@@ -353,7 +318,7 @@ class DBWallpaperService : WallpaperService() {
             mLastOmegaCheck = Calendar.getInstance().timeInMillis
 
             // Reschedule here.  We'll let the thread return as need be.
-            mHandler.postDelayed(mOmegaRunner, Companion.OMEGA_INTERVAL)
+            mHandler.postDelayed(mOmegaRunner, OMEGA_INTERVAL)
         }
 
         /**
@@ -363,9 +328,9 @@ class DBWallpaperService : WallpaperService() {
          * @return a shift
          */
         private fun getShift(cal: Calendar): DBShift {
-            // If Omega Shift has already been called, keep going with it.  The
-            // Omega Shift checker will return the shift to Invalid once it's
-            // ready to go back, and we'll recalculate from there.
+            // If Omega Shift has already been called, keep going with it.  The Omega Shift checker
+            // will return the shift to Invalid once it's ready to go back, and we'll recalculate
+            // from there.
             if (mOmegaShift) return DBShift.OMEGASHIFT
             val hour = cal[Calendar.HOUR_OF_DAY]
 
@@ -379,8 +344,8 @@ class DBWallpaperService : WallpaperService() {
         }
 
         /**
-         * Gets the background color for a given shift.  This will fill the area
-         * that isn't taken up by the banner.
+         * Gets the background color for a given shift.  This will fill the area that isn't taken up
+         * by the banner.
          *
          * @param shift the shift in question
          * @return the color int you're looking for
@@ -412,8 +377,8 @@ class DBWallpaperService : WallpaperService() {
         }
 
         /**
-         * Gets the Drawable resource ID for a given shift.  In the current
-         * version, these are VectorDrawables.
+         * Gets the Drawable resource ID for a given shift.  In the current version, these are
+         * VectorDrawables.
          *
          * @param shift the shift in question
          * @return the banner you're looking for
@@ -450,34 +415,30 @@ class DBWallpaperService : WallpaperService() {
                         else -> alpha
                     })).roundToInt()
 
-            // Let's just assume the height and width of the canvas is accurate
-            // as to the overall size of the wallpaper, because that would make
-            // *SENSE*.  Cue someone telling me that's horribly and obviously
-            // wrong.
+            // Let's just assume the height and width of the canvas is accurate as to the overall
+            // size of the wallpaper, because that would make *SENSE*.  Cue someone telling me
+            // that's horribly and obviously wrong.
 
-            // First, flood the entire canvas with a pleasing shade of shift
-            // banner color.
+            // First, flood the entire canvas with a pleasing shade of shift banner color.
             val canvasArea = Rect(0, 0, canvas.width, canvas.height)
             mPaint.color = getBackgroundColor(shift)
             mPaint.style = Paint.Style.FILL
             mPaint.alpha = intAlpha
             canvas.drawRect(canvasArea, mPaint)
 
-            // Then, draw the banner on top of it, centered.  Fill as much
-            // vertical space as possible.
+            // Then, draw the banner on top of it, centered.  Fill as much vertical space as
+            // possible.
             @DrawableRes val shiftBanner = getBannerDrawable(shift)
 
-            // Resolve that into a Drawable.  If we're running pre-Lollipop, we
-            // need to go to the VectorDrawableCompat library.  Either way, we
-            // only need to care that it's a Drawable.
-            val d: Drawable?
-            d =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                        ResourcesCompat.getDrawable(
-                            resources, shiftBanner,
-                            null) else VectorDrawableCompat.create(resources,
-                                                                   shiftBanner,
-                                                                   null)
+            // Resolve that into a Drawable.  If we're running pre-Lollipop, we need to go to the
+            // VectorDrawableCompat library.  Either way, we only need to care that it's a Drawable.
+            val d = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                ResourcesCompat.getDrawable(
+                        resources, shiftBanner,
+                        null)
+                else VectorDrawableCompat.create(resources,
+                                                 shiftBanner,
+                                                 null)
 
             // If d winds up null, something went very very wrong.
             if (d == null) {
@@ -489,12 +450,10 @@ class DBWallpaperService : WallpaperService() {
                 return
             }
 
-            // Now, scale it.  Until further notice, all we want is to make it
-            // stretch from the top to the bottom of the screen, allowing for
-            // the background to cover the rest of it.  The Drawables are at a
-            // kinda weird aspect ratio (oops), but this oughta do it...
-            val aspect = d.intrinsicWidth.toFloat() / d.intrinsicHeight
-                    .toFloat()
+            // Now, scale it.  Until further notice, all we want is to make it stretch from the top
+            // to the bottom of the screen, allowing for the background to cover the rest of it.
+            // The Drawables are at a kinda weird aspect ratio (oops), but this oughta do it...
+            val aspect = d.intrinsicWidth.toFloat() / d.intrinsicHeight.toFloat()
             val newWidth = (canvas.height * aspect).roundToInt()
 
             // Finally, offset it to the middle.
@@ -509,8 +468,8 @@ class DBWallpaperService : WallpaperService() {
          */
         private fun draw() {
             Log.d(DEBUG_TAG, "DRAW!")
-            // Hi again.  Still on the UI thread and all.  So we've got that
-            // going for us.  Which is good.
+            // Hi again.  Still on the UI thread and all.  So we've got that going for us.  Which is
+            // nice.
 
             // So, figure out what shift we're on.
             val cal = makeCalendar()
@@ -520,44 +479,39 @@ class DBWallpaperService : WallpaperService() {
             val holder = surfaceHolder
             var canvas: Canvas? = null
             try {
-                // And by "see if we've got a usable SurfaceHolder", I mean
-                // check if lockCanvas() returns something that isn't null.
+                // And by "see if we've got a usable SurfaceHolder", I mean check if lockCanvas()
+                // returns something that isn't null.
                 canvas = holder.lockCanvas()
                 if (canvas != null) {
-                    Log.d(DEBUG_TAG,
-                          "mLastDraw is ${mLastDraw.name}; mNextDraw is " +
-                                  "${mNextDraw.name}; shift is ${shift.name}")
+                    Log.d(DEBUG_TAG, "mLastDraw is ${mLastDraw.name}; mNextDraw is " +
+                            "${mNextDraw.name}; shift is ${shift.name}")
                     if (mLastDraw != mNextDraw && mNextDraw != shift) {
-                        // If all three of mLastDraw, mNextDraw, and shift are
-                        // different, that means we somehow got a shift change
-                        // DURING a transition, which is really weird and is
-                        // probably an error.  We should reset.
+                        // If all three of mLastDraw, mNextDraw, and shift are different, that means
+                        // we somehow got a shift change DURING a transition, which is really weird
+                        // and is probably an error.  We should reset.
                         Log.d(DEBUG_TAG, "Shifts are invalid, resetting...")
                         mLastDraw = DBShift.INVALID
                     }
                     if (mLastDraw == DBShift.INVALID || mLastDraw == shift) {
-                        // If the last-known shift we drew was INVALID, this is
-                        // the first run for this Surface.  Draw it without a
-                        // fade, we'll set mLastDraw during cleanup.
+                        // If the last-known shift we drew was INVALID, this is the first run for
+                        // this Surface.  Draw it without a fade, we'll set mLastDraw during
+                        // cleanup.
                         //
-                        // If it matches the current shift, we're either in the
-                        // hourly check where it didn't change or we came back
-                        // from a visibility change.  Either way, just draw the
-                        // shift banner.
+                        // If it matches the current shift, we're either in the hourly check where
+                        // it didn't change or we came back from a visibility change.  Either way,
+                        // just draw the shift banner.
                         Log.d(DEBUG_TAG,
                               "Either initial shift or holding on last shift (${shift.name})")
                         drawShift(canvas, shift, 1.0f)
                     } else {
                         // If the shift is different, we're crossfading.
                         if (mStopFadeAt < cal.timeInMillis && mNextDraw != shift) {
-                            // If the current time is past the last time at
-                            // which we faded (and shift is different from
-                            // mNextDraw), we're starting a new fade here and
-                            // now, so let's set up a couple values.
-                            mStopFadeAt = cal.timeInMillis + Companion.FADE_TIME
+                            // If the current time is past the last time at which we faded (and
+                            // shift is different from mNextDraw), we're starting a new fade here
+                            // and now, so let's set up a couple values.
+                            mStopFadeAt = cal.timeInMillis + FADE_TIME
                             mNextDraw = shift
-                            Log.d(DEBUG_TAG,
-                                  "This is a new fade, mStopFadeAt is now " +
+                            Log.d(DEBUG_TAG, "This is a new fade, mStopFadeAt is now " +
                                           "$mStopFadeAt and fading to ${mNextDraw.name}")
                         }
                         Log.d(DEBUG_TAG, "Fading from ${mLastDraw.name} to ${mNextDraw.name}")
@@ -565,11 +519,10 @@ class DBWallpaperService : WallpaperService() {
                         // Draw the old shift first.
                         drawShift(canvas, mLastDraw, 1.0f)
 
-                        // Now, draw the new shift, faded to a percentage of the
-                        // time to the end of the fade.  For the first run, this
-                        // will be zero, of course.
+                        // Now, draw the new shift, faded to a percentage of the time to the end of
+                        // the fade.  For the first run, this will be zero, of course.
                         drawShift(canvas, mNextDraw,
-                                  (Companion.FADE_TIME - (mStopFadeAt - cal.timeInMillis)).toFloat() / Companion.FADE_TIME.toFloat())
+                                  (FADE_TIME - (mStopFadeAt - cal.timeInMillis)).toFloat() / FADE_TIME.toFloat())
                     }
                 }
             } finally {
@@ -582,10 +535,9 @@ class DBWallpaperService : WallpaperService() {
             val nextDrawDelay: Long
             when {
                 mLastDraw == DBShift.INVALID -> {
-                    Log.d(DEBUG_TAG,
-                          "Last draw was invalid, scheduling for the top of the hour...")
-                    // If the last draw was invalid, this is init time (or an error
-                    // case).  Next update is on the hour.
+                    Log.d(DEBUG_TAG, "Last draw was invalid, scheduling for the top of the hour...")
+                    // If the last draw was invalid, this is init time (or an error case).  Next
+                    // update is on the hour.
                     mLastDraw = shift
                     mNextDraw = shift
                     mStopFadeAt = 1L
@@ -599,11 +551,10 @@ class DBWallpaperService : WallpaperService() {
                     nextDrawDelay = cal.timeInMillis - now
                 }
                 mStopFadeAt < cal.timeInMillis -> {
-                    Log.d(DEBUG_TAG,
-                          "Last fade completed, scheduling for the top of the hour...")
-                    // If the current time is past the time at which the fade should
-                    // end, that means that, one way or another, we don't need to
-                    // fade.  The next update should be on the hour.
+                    Log.d(DEBUG_TAG, "Last fade completed, scheduling for the top of the hour...")
+                    // If the current time is past the time at which the fade should end, that means
+                    // that, one way or another, we don't need to fade.  The next update should be
+                    // on the hour.
                     mLastDraw = mNextDraw
 
                     // Color up!
@@ -616,19 +567,16 @@ class DBWallpaperService : WallpaperService() {
                 }
                 else -> {
                     Log.d(DEBUG_TAG, "In a fade, scheduling for next frame...")
-                    // Otherwise, we're still fading.  Next update is at the
-                    // next frame.  Don't do a color update, as we're between
-                    // colors and it's not really worth computing intermediate
-                    // colors during the fade.  I think.  Actually, I'm not
-                    // really clear why the WallpaperColors part exists, but
-                    // I've at least got guesses.
+                    // Otherwise, we're still fading.  Next update is at the next frame.  Don't do a
+                    // color update, as we're between colors and it's not really worth computing
+                    // intermediate colors during the fade.  I think.
                     mNextDraw = shift
-                    nextDrawDelay = Companion.FRAME_TIME
+                    nextDrawDelay = FRAME_TIME
                 }
             }
 
-            // Clear anything else in the queue, just in case.  We don't want to
-            // accidentally pile up spurious draws, after all.
+            // Clear anything else in the queue, just in case.  We don't want to accidentally pile
+            // up spurious draws, after all.
             mHandler.removeCallbacks(mDrawRunner)
 
             // Schedule it!
@@ -640,31 +588,28 @@ class DBWallpaperService : WallpaperService() {
 
         @TargetApi(27)
         override fun onComputeColors(): WallpaperColors? {
-            // Let's get fancy here.  First off, if we're in the middle of a
-            // transition when we're asked for this (I don't *think* that should
-            // happen, but maybe?), we return null.  We're not going to bother.
+            // Let's get fancy here.  First off, if we're in the middle of a transition when we're
+            // asked for this (I don't *think* that should happen, but maybe?), we return null.
+            // We're not going to bother.
             if (mLastDraw != mNextDraw) return null
 
-            // Otherwise, we can build up a WallpaperColors.  Now, I know
-            // there's fromDrawable we can use for this, but since we only need
-            // three colors AND the shift banners use pretty simple color
-            // palettes, why not just do this ourselves and make sure the data
+            // Otherwise, we can build up a WallpaperColors.  Now, I know there's fromDrawable we
+            // can use for this, but since we only need three colors AND the shift banners use
+            // pretty simple color palettes, why not just do this ourselves and make sure the data
             // is nice and clean?
             val secondary: Color
             val tertiary: Color
 
-            // To wit: The background color will be the primary, as that's the
-            // splash to fill in any space that the banner doesn't take.  Most
-            // of the screen should be this color, in other words.  Secondary
-            // and tertiary is on a per-use basis.
+            // To wit: The background color will be the primary, as that's the splash to fill in any
+            // space that the banner doesn't take.  Most of the screen should be this color, in
+            // other words.  Secondary and tertiary is on a per-use basis.
             val primary = Color.valueOf(getBackgroundColor(mLastDraw))
             val res = resources
 
             when (mLastDraw) {
                 DBShift.DAWNGUARD -> {
-                    // The top half of Dawnguard is the background, so the
-                    // bottom half will be the secondary.  The yellow banner
-                    // trim is tertiary.
+                    // The top half of Dawnguard is the background, so the bottom half will be the
+                    // secondary.  The yellow banner trim is tertiary.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_dawnguard,
                                                                        null))
@@ -681,8 +626,8 @@ class DBWallpaperService : WallpaperService() {
                                                                       R.color.tertiary_betaflight,
                                                                       null))
                 } else {
-                    // Alpha Flight has only three colors: The background, the
-                    // pale sinister, and the white for the wing.
+                    // Alpha Flight has only three colors: The background, the pale sinister, and
+                    // the white for the wing.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_alphaflight,
                                                                        null))
@@ -691,10 +636,9 @@ class DBWallpaperService : WallpaperService() {
                                                                       null))
                 }
                 DBShift.NIGHTWATCH -> if (useBeeShed) {
-                    // Dusk Guard is tricky, since that's the only banner with a
-                    // distinct horizontal component that I can't abstract out
-                    // to vertical very easily.  But, we can use the additional
-                    // color bands.
+                    // Dusk Guard is tricky, since that's the only banner with a distinct horizontal
+                    // component that I can't abstract out to vertical very easily.  But, we can use
+                    // the additional color bands.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_duskguard,
                                                                        null))
@@ -702,8 +646,7 @@ class DBWallpaperService : WallpaperService() {
                                                                       R.color.tertiary_duskguard,
                                                                       null))
                 } else {
-                    // Night Watch has the blue of the moon and the lighter
-                    // trim.
+                    // Night Watch has the blue of the moon and the lighter trim.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_nightwatch,
                                                                        null))
@@ -712,8 +655,8 @@ class DBWallpaperService : WallpaperService() {
                                                                       null))
                 }
                 DBShift.ZETASHIFT -> {
-                    // Zeta Shift is similar to Alpha Flight, where it only has
-                    // three colors.  Again, let's use white as the tertiary.
+                    // Zeta Shift is similar to Alpha Flight, where it only has three colors.
+                    // Again, let's use white as the tertiary.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_zetashift,
                                                                        null))
@@ -722,11 +665,10 @@ class DBWallpaperService : WallpaperService() {
                                                                       null))
                 }
                 DBShift.OMEGASHIFT -> {
-                    // Omega Shift is tricky.  It has all four (non-Bee-Shed)
-                    // banner colors, making it hard to pick a secondary.  So,
-                    // until I have a better idea, let's just go with... oh...
-                    // the blue of Night Watch's moon.  The tertiary is still
-                    // just the white of the omega.
+                    // Omega Shift is tricky.  It has all four (non-Bee-Shed) banner colors, making
+                    // it hard to pick a secondary.  So, until I have a better idea, let's just go
+                    // with... oh... the blue of Night Watch's moon.  The tertiary is still just the
+                    // white of the omega.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_omegashift,
                                                                        null))
