@@ -10,15 +10,24 @@
     <color name="background_zetashift">#603987</color>
     <color name="background_omegashift">#000000</color>
 
+    <color name="background_betaflight">#566949</color>
+    <color name="background_duskguard">#191760</color>
+
     <color name="secondary_dawnguard">#c16b31</color>
     <color name="secondary_alphaflight">#741216</color>
     <color name="secondary_nightwatch">#27245f</color>
     <color name="secondary_zetashift">#9166a9</color>
     <color name="secondary_omegashift">#27245f</color>
 
+    <color name="secondary_betaflight">#3c4f31</color>
+    <color name="secondary_duskguard">#3a384d</color>
+
     <color name="tertiary_dawnguard">#ebe24c</color>
     <color name="tertiary_alphaflight">#fff</color>
     <color name="tertiary_nightwatch">#2cabdf</color>
     <color name="tertiary_zetashift">#fff</color>
     <color name="tertiary_omegashift">#fff</color>
+
+    <color name="tertiary_betaflight">#2d3c25</color>
+    <color name="tertiary_duskguard">#6f789a</color>
 </resources>

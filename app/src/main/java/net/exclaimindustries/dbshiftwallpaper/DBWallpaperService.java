@@ -59,6 +59,7 @@ public class DBWallpaperService extends WallpaperService {
 
     public static final String PREF_TIMEZONE = "TimeZone";
     public static final String PREF_OMEGASHIFT = "AllowOmegaShift";
+    public static final String PREF_BEESHED = "RustproofBeeShed";
 
     @Override
     public Engine onCreateEngine() {
@@ -392,13 +393,17 @@ public class DBWallpaperService extends WallpaperService {
          * @return the color int you're looking for
          */
         private int getBackgroundColor(@NonNull DBShift shift) {
+            // PREFS!!!
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(DBWallpaperService.this);
+            boolean beeShed = prefs.getBoolean(PREF_BEESHED, false);
+
             switch(shift) {
                 case DAWNGUARD:
                     return resolveColor(R.color.background_dawnguard);
                 case ALPHAFLIGHT:
-                    return resolveColor(R.color.background_alphaflight);
+                    return resolveColor(beeShed ? R.color.background_betaflight : R.color.background_alphaflight);
                 case NIGHTWATCH:
-                    return resolveColor(R.color.background_nightwatch);
+                    return resolveColor(beeShed ? R.color.background_duskguard : R.color.background_nightwatch);
                 case ZETASHIFT:
                     return resolveColor(R.color.background_zetashift);
                 case OMEGASHIFT:
@@ -434,13 +439,17 @@ public class DBWallpaperService extends WallpaperService {
          */
         @DrawableRes
         private int getBannerDrawable(@NonNull DBShift shift) {
+            // PREFS!!!
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(DBWallpaperService.this);
+            boolean beeShed = prefs.getBoolean(PREF_BEESHED, false);
+
             switch(shift) {
                 case DAWNGUARD:
                     return R.drawable.dbdawnguard;
                 case ALPHAFLIGHT:
-                    return R.drawable.dbalphaflight;
+                    return beeShed ? R.drawable.dbbetaflight : R.drawable.dbalphaflight;
                 case NIGHTWATCH:
-                    return R.drawable.dbnightwatch;
+                    return beeShed ? R.drawable.dbduskguard : R.drawable.dbnightwatch;
                 case ZETASHIFT:
                     return R.drawable.dbzetashift;
                 case OMEGASHIFT:
@@ -676,6 +685,10 @@ public class DBWallpaperService extends WallpaperService {
             // and tertiary is on a per-use basis.
             primary = Color.valueOf(getBackgroundColor(mLastDraw));
 
+            // Hold on!  Maybe we want something from the bee shed?
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(DBWallpaperService.this);
+            boolean beeShed = prefs.getBoolean(PREF_BEESHED, false);
+
             switch(mLastDraw) {
                 case DAWNGUARD:
                     // The top half of Dawnguard is the background, so the
@@ -685,16 +698,31 @@ public class DBWallpaperService extends WallpaperService {
                     tertiary = Color.valueOf(resolveColor(R.color.tertiary_dawnguard));
                     break;
                 case ALPHAFLIGHT:
-                    // Alpha Flight has only three colors: The background, the
-                    // pale sinister, and the white for the wing.
-                    secondary = Color.valueOf(resolveColor(R.color.secondary_alphaflight));
-                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_alphaflight));
+                    if(beeShed) {
+                        // Beta Flight has a decent enough variety of greens.
+                        secondary = Color.valueOf(resolveColor(R.color.secondary_betaflight));
+                        tertiary = Color.valueOf(resolveColor(R.color.tertiary_betaflight));
+                    } else {
+                        // Alpha Flight has only three colors: The background,
+                        // the pale sinister, and the white for the wing.
+                        secondary = Color.valueOf(resolveColor(R.color.secondary_alphaflight));
+                        tertiary = Color.valueOf(resolveColor(R.color.tertiary_alphaflight));
+                    }
                     break;
                 case NIGHTWATCH:
-                    // Night Watch has the blue of the moon and the lighter
-                    // trim.
-                    secondary = Color.valueOf(resolveColor(R.color.secondary_nightwatch));
-                    tertiary = Color.valueOf(resolveColor(R.color.tertiary_nightwatch));
+                    if(beeShed) {
+                        // Dusk Guard is tricky, since that's the only banner
+                        // with a distinct horizontal component that I can't
+                        // abstract out to vertical very easily.  But, we can
+                        // use the additional color bands.
+                        secondary = Color.valueOf(resolveColor(R.color.secondary_duskguard));
+                        tertiary = Color.valueOf(resolveColor(R.color.tertiary_duskguard));
+                    } else {
+                        // Night Watch has the blue of the moon and the lighter
+                        // trim.
+                        secondary = Color.valueOf(resolveColor(R.color.secondary_nightwatch));
+                        tertiary = Color.valueOf(resolveColor(R.color.tertiary_nightwatch));
+                    }
                     break;
                 case ZETASHIFT:
                     // Zeta Shift is similar to Alpha Flight, where it only has
