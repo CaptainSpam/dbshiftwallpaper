@@ -13,13 +13,15 @@ import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
-import android.support.annotation.ColorRes;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.graphics.drawable.VectorDrawableCompat;
 import android.util.Log;
 import android.view.SurfaceHolder;
+
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -202,7 +204,7 @@ public class DBWallpaperService extends WallpaperService {
                 mHandler.post(mOmegaRunner);
             } else {
                 Log.d(DEBUG_TAG, "Last Omega check was " + timeDifference +
-                        " ago, rescheduling with a delay of " + 
+                        " ago, rescheduling with a delay of " +
                         (OMEGA_INTERVAL - timeDifference) +
                         "...");
                 // Otherwise, schedule it for whenever it should run next.
@@ -486,7 +488,7 @@ public class DBWallpaperService extends WallpaperService {
             // only need to care that it's a Drawable.
             Drawable d;
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                d = getResources().getDrawable(shiftBanner, null);
+                d = ResourcesCompat.getDrawable(getResources(), shiftBanner, null);
             else
                 d = VectorDrawableCompat.create(getResources(), shiftBanner, null);
 
