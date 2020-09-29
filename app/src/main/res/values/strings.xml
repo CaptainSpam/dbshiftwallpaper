@@ -9,9 +9,9 @@
     <string name="pref_timezone_on">Use Moonbase Time</string>
     <string name="pref_timezone_off">Use Local Time (not recommended)</string>
 
-    <string name="pref_omega_title">Omega Shift (Experimental)</string>
+    <string name="pref_omega_title">Omega Shift</string>
     <string name="pref_omega_on">Periodically check for Omega Shift</string>
-    <string name="pref_omega_off">Just use the normal shift banners</string>
+    <string name="pref_omega_off">Don\'t bother with Omega Shift</string>
 
     <string name="omega_warning">Turning this on will cause periodic network calls to the VST to check if it\'s Omega Shift.  Even though the VST is generally on the ball with that, this won\'t check very frequently, so it might pick it up a few minutes late.  Also, this won\'t make any network calls at all unless it\'s November.</string>
     <string name="thats_fair">That\'s fair</string>
