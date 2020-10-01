@@ -621,7 +621,7 @@ class DBWallpaperService : WallpaperService() {
 
             when (mLastDraw) {
                 DBShift.DAWNGUARD -> {
-                    // The top half of Dawnguard is the background, so the bottom half will be the
+                    // The top half of Dawn Guard is the background, so the bottom half will be the
                     // secondary.  The yellow banner trim is tertiary.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_dawnguard,
@@ -659,9 +659,9 @@ class DBWallpaperService : WallpaperService() {
                                                                       null))
                 }
                 DBShift.DUSKGUARD -> {
-                    // Dusk Guard is tricky, since that's the only banner with a distinct horizontal
-                    // component that I can't abstract out to vertical very easily.  But, we can use
-                    // the additional color bands.
+                    // Dusk Guard's background isn't represented in its banner, which makes it a bit
+                    // strange.  We'll use the top half as the secondary and the trim as the
+                    // tertiary (the bottom half is already somewhat similar to the background).
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                        R.color.secondary_duskguard,
                                                                        null))
