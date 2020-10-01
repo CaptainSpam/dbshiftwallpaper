@@ -38,7 +38,11 @@ class DBWallpaperService : WallpaperService() {
         /** Zeta Shift (12m-6a)  */
         ZETASHIFT,
         /** Omega Shift (whenever the VST says it is)  */
-        OMEGASHIFT
+        OMEGASHIFT,
+        /** Beta Flight (12n-6p in Rustproof Bee Shed mode) */
+        BETAFLIGHT,
+        /** Dusk Guard (6p-12m in Rustproof Bee Shed mode) */
+        DUSKGUARD,
     }
 
     companion object {
@@ -333,14 +337,22 @@ class DBWallpaperService : WallpaperService() {
             // from there.
             if (mOmegaShift) return DBShift.OMEGASHIFT
             val hour = cal[Calendar.HOUR_OF_DAY]
+            val beeShed = useBeeShed
 
-            // The Zeta begins; the watch is helpless to stop it.
-            if (hour < 6) return DBShift.ZETASHIFT
-            // The dawn comes and fights back the powers of twilight.
-            if (hour < 12) return DBShift.DAWNGUARD
-            // The bus takes flight, ever vigilant.
-            return if (hour < 18) DBShift.ALPHAFLIGHT else DBShift.NIGHTWATCH
-            // The watch arrives; the Moonbase is at peace.
+            return when {
+                // The Zeta begins; the watch is helpless to stop it.
+                hour < 6 -> DBShift.ZETASHIFT
+                // The dawn comes and fights back the powers of twilight.
+                hour < 12 -> DBShift.DAWNGUARD
+                // The bus takes flight, ever vigilant.
+                hour < 18 && !beeShed -> DBShift.ALPHAFLIGHT
+                // The bus takes flight, looking confused.
+                hour < 18 && beeShed -> DBShift.BETAFLIGHT
+                // The watch arrives; the Moonbase is at peace.
+                hour >= 18 && !beeShed -> DBShift.NIGHTWATCH
+                // The dusk is on guard, for some reason.
+                else -> DBShift.DUSKGUARD
+            }
         }
 
         /**
@@ -353,20 +365,19 @@ class DBWallpaperService : WallpaperService() {
         private fun getBackgroundColor(shift: DBShift): Int {
             val res = resources
             return when (shift) {
-                DBShift.DAWNGUARD -> ResourcesCompat.getColor(res,
-                                                              R.color.background_dawnguard,
+                DBShift.DAWNGUARD -> ResourcesCompat.getColor(res, R.color.background_dawnguard,
                                                               null)
-                DBShift.ALPHAFLIGHT -> ResourcesCompat.getColor(res,
-                                                                if (useBeeShed) R.color.background_betaflight else R.color.background_alphaflight,
+                DBShift.ALPHAFLIGHT -> ResourcesCompat.getColor(res, R.color.background_alphaflight,
                                                                 null)
-                DBShift.NIGHTWATCH -> ResourcesCompat.getColor(res,
-                                                               if (useBeeShed) R.color.background_duskguard else R.color.background_nightwatch,
+                DBShift.BETAFLIGHT -> ResourcesCompat.getColor(res, R.color.background_betaflight,
                                                                null)
-                DBShift.ZETASHIFT -> ResourcesCompat.getColor(res,
-                                                              R.color.background_zetashift,
+                DBShift.NIGHTWATCH -> ResourcesCompat.getColor(res, R.color.background_nightwatch,
+                                                               null)
+                DBShift.DUSKGUARD -> ResourcesCompat.getColor(res, R.color.background_duskguard,
                                                               null)
-                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(res,
-                                                               R.color.background_omegashift,
+                DBShift.ZETASHIFT -> ResourcesCompat.getColor(res, R.color.background_zetashift,
+                                                              null)
+                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(res, R.color.background_omegashift,
                                                                null)
                 else -> {
                     Log.e(DEBUG_TAG, "Tried to get background color for shift " +
@@ -387,8 +398,10 @@ class DBWallpaperService : WallpaperService() {
         private fun getBannerDrawable(shift: DBShift): Int {
             return when (shift) {
                 DBShift.DAWNGUARD -> R.drawable.dbdawnguard
-                DBShift.ALPHAFLIGHT -> if (useBeeShed) R.drawable.dbbetaflight else R.drawable.dbalphaflight
-                DBShift.NIGHTWATCH -> if (useBeeShed) R.drawable.dbduskguard else R.drawable.dbnightwatch
+                DBShift.ALPHAFLIGHT -> R.drawable.dbalphaflight
+                DBShift.BETAFLIGHT -> R.drawable.dbbetaflight
+                DBShift.NIGHTWATCH -> R.drawable.dbnightwatch
+                DBShift.DUSKGUARD -> R.drawable.dbduskguard
                 DBShift.ZETASHIFT -> R.drawable.dbzetashift
                 DBShift.OMEGASHIFT -> R.drawable.dbomegashift
                 else -> {
@@ -617,15 +630,7 @@ class DBWallpaperService : WallpaperService() {
                                                                       R.color.tertiary_dawnguard,
                                                                       null))
                 }
-                DBShift.ALPHAFLIGHT -> if (useBeeShed) {
-                    // Beta Flight has a decent enough variety of greens.
-                    secondary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                       R.color.secondary_betaflight,
-                                                                       null))
-                    tertiary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                      R.color.tertiary_betaflight,
-                                                                      null))
-                } else {
+                DBShift.ALPHAFLIGHT -> {
                     // Alpha Flight has only three colors: The background, the pale sinister, and
                     // the white for the wing.
                     secondary = Color.valueOf(ResourcesCompat.getColor(res,
@@ -635,7 +640,25 @@ class DBWallpaperService : WallpaperService() {
                                                                       R.color.tertiary_alphaflight,
                                                                       null))
                 }
-                DBShift.NIGHTWATCH -> if (useBeeShed) {
+                DBShift.BETAFLIGHT -> {
+                    // Beta Flight has a decent enough variety of greens.
+                    secondary = Color.valueOf(ResourcesCompat.getColor(res,
+                                                                       R.color.secondary_betaflight,
+                                                                       null))
+                    tertiary = Color.valueOf(ResourcesCompat.getColor(res,
+                                                                      R.color.tertiary_betaflight,
+                                                                      null))
+                }
+                DBShift.NIGHTWATCH -> {
+                    // Night Watch has the blue of the moon and the lighter trim.
+                    secondary = Color.valueOf(ResourcesCompat.getColor(res,
+                                                                       R.color.secondary_nightwatch,
+                                                                       null))
+                    tertiary = Color.valueOf(ResourcesCompat.getColor(res,
+                                                                      R.color.tertiary_nightwatch,
+                                                                      null))
+                }
+                DBShift.DUSKGUARD -> {
                     // Dusk Guard is tricky, since that's the only banner with a distinct horizontal
                     // component that I can't abstract out to vertical very easily.  But, we can use
                     // the additional color bands.
@@ -644,14 +667,6 @@ class DBWallpaperService : WallpaperService() {
                                                                        null))
                     tertiary = Color.valueOf(ResourcesCompat.getColor(res,
                                                                       R.color.tertiary_duskguard,
-                                                                      null))
-                } else {
-                    // Night Watch has the blue of the moon and the lighter trim.
-                    secondary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                       R.color.secondary_nightwatch,
-                                                                       null))
-                    tertiary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                      R.color.tertiary_nightwatch,
                                                                       null))
                 }
                 DBShift.ZETASHIFT -> {
