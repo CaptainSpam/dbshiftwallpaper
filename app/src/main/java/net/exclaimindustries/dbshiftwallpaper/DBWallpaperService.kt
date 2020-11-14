@@ -16,9 +16,9 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
 import cz.msebera.android.httpclient.client.methods.HttpGet
-import cz.msebera.android.httpclient.impl.client.HttpClients
+import cz.msebera.android.httpclient.impl.client.BasicResponseHandler
+import cz.msebera.android.httpclient.impl.client.HttpClientBuilder
 import java.io.IOException
-import java.net.HttpURLConnection
 import java.util.*
 import kotlin.math.roundToInt
 
@@ -59,10 +59,6 @@ class DBWallpaperService : WallpaperService() {
 
         // We'll use the VST's Omega Shift checker for simplicity.
         private const val OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html"
-
-        // Give it ten seconds to connect.  It shouldn't take that long.
-        private const val CONNECTION_TIMEOUT_SEC = 10
-        private const val CONNECTION_TIMEOUT_MS = CONNECTION_TIMEOUT_SEC * 1000
 
         // The amount of time between Omega Shift checks.  We'll go with (at least) ten minutes for
         // now.
@@ -109,7 +105,6 @@ class DBWallpaperService : WallpaperService() {
         // surface.  Hopefully the service itself doesn't get destroyed all the time, else this
         // won't do anything.
         private var mLastOmegaCheck = 0L
-        private var mRequest: HttpGet? = null
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
@@ -243,77 +238,41 @@ class DBWallpaperService : WallpaperService() {
                 // do wacky power-saving stuff.
                 Thread {
                     Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW")
-                    // I swear there has to be a simpler way to do this, but I just wanted to stick
-                    // with what I know for now...
 
-                    // Build an HTTP client that can be closed.  We want to be able to bail out if
-                    // it's taking too long.  This really shouldn't take much time unless this is a
-                    // truly disastrous internet connection.
-                    val client = HttpClients.createDefault()
-                    mRequest = HttpGet(OMEGA_CHECK_URL)
-
-                    // Timer goes now!  We'll start the client immediately in the upcoming try
-                    // block.
-                    val task: TimerTask = object : TimerTask() {
-                        override fun run() {
-                            Log.w(DEBUG_TAG,
-                                  "Omega Shift check timed out, bailing out...")
-                            try {
-                                mRequest!!.abort()
-                            } catch (npe: NullPointerException) {
-                                // If the request was somehow null, just ignore it.
-                            }
-                        }
-                    }
-                    Timer(true).schedule(task, CONNECTION_TIMEOUT_MS.toLong())
                     try {
-                        client.execute(mRequest).use { response ->
-                            // Immediately cancel the timer when it gets back.
-                            task.cancel()
+                        // Omega check!  Let's do it the same way the widget does it.  That's simple
+                        // and doesn't seem to be causing problems.
+                        val client = HttpClientBuilder.create().build()
+                        val request = HttpGet(OMEGA_CHECK_URL)
+                        val handler = BasicResponseHandler()
 
-                            // Make sure there wasn't any sort of error.
-                            if (!mRequest!!.isAborted
-                                    && response.statusLine.statusCode
-                                    == HttpURLConnection.HTTP_OK) {
-                                // Otherwise, we should have exactly one character, a one or a zero.
-                                val stream = response.entity.content
-                                val codeInt = stream.read()
-                                response.close()
-                                stream.close()
-                                when (codeInt) {
-                                    48 -> {
-                                        // It's not Omega Shift!  If we last knew it to be Omega
-                                        // Shift, invalidate it and redraw.
-                                        Log.d(DEBUG_TAG, "It's not Omega Shift!")
-                                        if (mOmegaShift) {
-                                            mOmegaShift = false
-                                            mHandler.removeCallbacks(mDrawRunner)
-                                            mHandler.post(mDrawRunner)
-                                        }
-                                    }
-                                    49 -> {
-                                        // It's Omega Shift!
-                                        Log.d(DEBUG_TAG, "It's Omega Shift!")
-                                        if (!mOmegaShift) {
-                                            mOmegaShift = true
-                                            mHandler.removeCallbacks(mDrawRunner)
-                                            mHandler.post(mDrawRunner)
-                                        }
-                                    }
-                                    else ->
-                                        // It's... neither?
-                                        Log.w(DEBUG_TAG,
-                                              "Network returned invalid character ${codeInt}, ignoring.")
+                        // We should be getting EXACTLY a 0 or 1.  Nothing more.  If anything else
+                        // comes in, we can ignore it.
+                        when(val response = client.execute(request, handler).trim()) {
+                            "0" -> {
+                                Log.d(DEBUG_TAG, "It's not Omega Shift!")
+                                if (mOmegaShift) {
+                                    mOmegaShift = false
+                                    mHandler.removeCallbacks(mDrawRunner)
+                                    mHandler.post(mDrawRunner)
                                 }
+                            }
+                            "1" -> {
+                                Log.d(DEBUG_TAG, "It's Omega Shift!")
+                                if (!mOmegaShift) {
+                                    mOmegaShift = true
+                                    mHandler.removeCallbacks(mDrawRunner)
+                                    mHandler.post(mDrawRunner)
+                                }
+                            }
+                            else -> {
+                                Log.w(DEBUG_TAG, "Network returned invalid character ${response}, ignoring.")
                             }
                         }
                     } catch (ioe: IOException) {
                         // If there's an IO exception, log it, but silently ignore it anyway.  This
                         // might include there being no network connection at all.
                         Log.w(DEBUG_TAG, "Some manner of IOException happened, ignoring.", ioe)
-                    } finally {
-                        // Make sure the timer got canceled no matter what.
-                        task.cancel()
                     }
                 }.start()
             }
