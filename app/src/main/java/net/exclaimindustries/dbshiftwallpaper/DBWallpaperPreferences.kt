@@ -3,15 +3,15 @@ package net.exclaimindustries.dbshiftwallpaper
 import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.FragmentActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 
 /**
  * This sets up the preferences for the wallpaper.
  */
-class DBWallpaperPreferences : FragmentActivity() {
+class DBWallpaperPreferences : AppCompatActivity() {
     class DBPrefsFragment : PreferenceFragmentCompat() {
         companion object {
             private const val OMEGA_DIALOG = "OmegaDialog"
