@@ -5,9 +5,9 @@
 
     <string name="title_preferences">Preferences</string>
 
-    <string name="pref_timezone_title">Time Zone</string>
-    <string name="pref_timezone_on">Use Moonbase Time</string>
-    <string name="pref_timezone_off">Use Local Time (not recommended)</string>
+    <string name="pref_timezone_title">Time zone</string>
+    <string name="pref_timezone_on">Use Moonbase time</string>
+    <string name="pref_timezone_off">Use local time (not recommended)</string>
 
     <string name="pref_omega_title">Omega Shift</string>
     <string name="pref_omega_on">Periodically check for Omega Shift</string>
