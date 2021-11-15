@@ -9,6 +9,7 @@
     <color name="background_nightwatch">#1574b7</color>
     <color name="background_zetashift">#603987</color>
     <color name="background_omegashift">#000000</color>
+    <color name="background_omegashift2021">#e9e8e7</color>
 
     <color name="background_betaflight">#566949</color>
     <color name="background_duskguard">#2d2a40</color>
@@ -18,6 +19,7 @@
     <color name="secondary_nightwatch">#27245f</color>
     <color name="secondary_zetashift">#9166a9</color>
     <color name="secondary_omegashift">#27245f</color>
+    <color name="secondary_omegashift2021">#80d4d3</color>
 
     <color name="secondary_betaflight">#3c4f31</color>
     <color name="secondary_duskguard">#191760</color>
@@ -27,6 +29,7 @@
     <color name="tertiary_nightwatch">#2cabdf</color>
     <color name="tertiary_zetashift">#fff</color>
     <color name="tertiary_omegashift">#fff</color>
+    <color name="tertiary_omegashift2021">#e39819</color>
 
     <color name="tertiary_betaflight">#2d3c25</color>
     <color name="tertiary_duskguard">#6f789a</color>

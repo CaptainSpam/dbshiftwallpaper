@@ -13,6 +13,10 @@
     <string name="pref_omega_on">Periodically check for Omega Shift</string>
     <string name="pref_omega_off">Don\'t bother with Omega Shift</string>
 
+    <string name="pref_omega_vintage_title">Use vintage Omega Shift banner</string>
+    <string name="pref_omega_vintage_on">Use old quartered-circle banner</string>
+    <string name="pref_omega_vintage_off">Use newer banner with road</string>
+
     <string name="pref_bee_shed_title">Rustproof Bee Shed</string>
     <string name="pref_bee_shed_on">Use Beta Flight and Dusk Guard</string>
     <string name="pref_bee_shed_off">Use Alpha Flight and Night Watch</string>

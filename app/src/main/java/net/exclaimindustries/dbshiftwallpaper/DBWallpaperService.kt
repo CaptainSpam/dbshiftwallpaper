@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
+import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
@@ -49,6 +50,7 @@ class DBWallpaperService : WallpaperService() {
         private const val DEBUG_TAG = "DBWallpaperService"
         const val PREF_TIMEZONE = "TimeZone"
         const val PREF_OMEGASHIFT = "AllowOmegaShift"
+        const val PREF_VINTAGEOMEGASHIFT = "VintageOmegaShift"
         const val PREF_BEESHED = "RustproofBeeShed"
 
         // The time between frames in the fade, in ms.  At present, this is a 30fps fade.
@@ -72,7 +74,7 @@ class DBWallpaperService : WallpaperService() {
 
     private inner class DBWallpaperEngine : Engine() {
         // We'll get a Handler at creation time.  Said Handler should be on the UI thread.
-        private val mHandler = Handler()
+        private val mHandler = Handler(Looper.getMainLooper())
 
         // This Runnable will thus be posted to said Handler, meaning this gets run on the UI
         // thread, so we can do a bunch of UI-ish things.  We'll catch up there.
@@ -182,13 +184,15 @@ class DBWallpaperService : WallpaperService() {
             }
         }
 
-        /**
-         * Whether or not the user wants to use the Rustproof Bee Shed banners.
-         */
+        /** Whether or not the user wants to use the Rustproof Bee Shed banners. */
         private val useBeeShed: Boolean
             get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
                     .getBoolean(PREF_BEESHED, false)
 
+        /** Whether or not the user wants the vintage Omega Shift banner. */
+        private val useVintageOmega: Boolean
+            get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
+                .getBoolean(PREF_VINTAGEOMEGASHIFT, false)
         /**
          * Grab the current calendar.  It will be adjusted to the appropriate timezone depending on
          * prefs.
@@ -336,8 +340,12 @@ class DBWallpaperService : WallpaperService() {
                                                               null)
                 DBShift.ZETASHIFT -> ResourcesCompat.getColor(res, R.color.background_zetashift,
                                                               null)
-                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(res, R.color.background_omegashift,
-                                                               null)
+                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(res,
+                    when(useVintageOmega) {
+                    true -> R.color.background_omegashift
+                    false -> R.color.background_omegashift2021
+                },
+                    null)
                 else -> {
                     Log.e(DEBUG_TAG, "Tried to get background color for shift " +
                             "${shift.name} fell out of switch statement?")
@@ -362,7 +370,10 @@ class DBWallpaperService : WallpaperService() {
                 DBShift.NIGHTWATCH -> R.drawable.dbnightwatch
                 DBShift.DUSKGUARD -> R.drawable.dbduskguard
                 DBShift.ZETASHIFT -> R.drawable.dbzetashift
-                DBShift.OMEGASHIFT -> R.drawable.dbomegashift
+                DBShift.OMEGASHIFT -> when(useVintageOmega) {
+                    true -> R.drawable.dbomegashift
+                    false -> R.drawable.dbomegashift2021
+                }
                 else -> {
                     Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " +
                             "${shift.name}, fell out of switch statement?")
@@ -639,16 +650,29 @@ class DBWallpaperService : WallpaperService() {
                                                                       null))
                 }
                 DBShift.OMEGASHIFT -> {
-                    // Omega Shift is tricky.  It has all four (non-Bee-Shed) banner colors, making
-                    // it hard to pick a secondary.  So, until I have a better idea, let's just go
-                    // with... oh... the blue of Night Watch's moon.  The tertiary is still just the
-                    // white of the omega.
-                    secondary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                       R.color.secondary_omegashift,
-                                                                       null))
-                    tertiary = Color.valueOf(ResourcesCompat.getColor(res,
-                                                                      R.color.tertiary_omegashift,
-                                                                      null))
+                    when(useVintageOmega) {
+                        true -> {
+                            // Vintage Omega Shift is tricky.  It has all four (non-Bee-Shed) banner
+                            // colors, making it hard to pick a secondary.  So, until I have a
+                            // better idea, let's just go with... oh... the blue of Night Watch's
+                            // moon.  The tertiary is still just the white of the omega.
+                            secondary = Color.valueOf(ResourcesCompat.getColor(res,
+                                R.color.secondary_omegashift,
+                                null))
+                            tertiary = Color.valueOf(ResourcesCompat.getColor(res,
+                                R.color.tertiary_omegashift,
+                                null))
+                        }
+                        false -> {
+                            // Modern Omega Shift is kinda a blue sky, yellow desert sort of thing.
+                            secondary = Color.valueOf(ResourcesCompat.getColor(res,
+                                R.color.secondary_omegashift2021,
+                                null))
+                            tertiary = Color.valueOf(ResourcesCompat.getColor(res,
+                                R.color.tertiary_omegashift2021,
+                                null))
+                        }
+                    }
                 }
                 DBShift.INVALID ->
                     // This REALLY shouldn't happen.
