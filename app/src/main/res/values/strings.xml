@@ -21,6 +21,8 @@
     <string name="pref_bee_shed_on">Use Beta Flight and Dusk Guard</string>
     <string name="pref_bee_shed_off">Use Alpha Flight and Night Watch</string>
 
+    <string name="pref_darken_title">Darken wallpaper (percent)</string>
+
     <string name="omega_warning">Turning this on will cause periodic network calls to the VST to check if it\'s Omega Shift.  Even though the VST is generally on the ball with that, this won\'t check very frequently, so it might pick it up a few minutes late.  Also, this won\'t make any network calls at all unless it\'s November.</string>
     <string name="thats_fair">That\'s fair</string>
 </resources>

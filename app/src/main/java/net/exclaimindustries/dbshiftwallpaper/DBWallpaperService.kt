@@ -52,6 +52,7 @@ class DBWallpaperService : WallpaperService() {
         const val PREF_OMEGASHIFT = "AllowOmegaShift"
         const val PREF_VINTAGEOMEGASHIFT = "VintageOmegaShift"
         const val PREF_BEESHED = "RustproofBeeShed"
+        const val PREF_DARKEN = "Darken"
 
         // The time between frames in the fade, in ms.  At present, this is a 30fps fade.
         private const val FRAME_TIME = 1000L / 30L
@@ -193,6 +194,12 @@ class DBWallpaperService : WallpaperService() {
         private val useVintageOmega: Boolean
             get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
                 .getBoolean(PREF_VINTAGEOMEGASHIFT, false)
+
+        /** Amount of darkening to apply, in percent. */
+        private val darkenPercent: Int
+            get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
+                .getInt(PREF_DARKEN, 0)
+
         /**
          * Grab the current calendar.  It will be adjusted to the appropriate timezone depending on
          * prefs.
@@ -506,6 +513,21 @@ class DBWallpaperService : WallpaperService() {
                         // the fade.  For the first run, this will be zero, of course.
                         drawShift(canvas, mNextDraw,
                                   (FADE_TIME - (mStopFadeAt - cal.timeInMillis)).toFloat() / FADE_TIME.toFloat())
+                    }
+
+                    // If darkening is turned on, just plaster a big ol' alpha'd rectangle over the
+                    // whole dang thing.  Also, copy the darkening value so we're not repeatedly
+                    // hitting the preference storage.  I don't know if that's a significant hit,
+                    // but it's a trivially unnecessary hit anyway.
+                    val darkenLocal = darkenPercent
+                    if(darkenLocal > 0) {
+                        Log.d(DEBUG_TAG, "Applying darkening of ${darkenLocal}%")
+                        // Hey, we can reuse that Paint, right?  Riiiiight!
+                        mPaint.color = Color.BLACK
+                        mPaint.style = Paint.Style.FILL
+                        mPaint.alpha = (255 * (darkenLocal / 100.0f)).roundToInt()
+                        val canvasArea = Rect(0, 0, canvas.width, canvas.height)
+                        canvas.drawRect(canvasArea, mPaint)
                     }
                 }
             } finally {

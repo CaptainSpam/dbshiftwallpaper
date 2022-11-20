@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
     <CheckBoxPreference
         android:defaultValue="true"
         android:key="TimeZone"
@@ -28,4 +29,13 @@
         android:summaryOff="@string/pref_bee_shed_off"
         android:summaryOn="@string/pref_bee_shed_on"
         android:title="@string/pref_bee_shed_title" />
+    <SeekBarPreference
+        android:defaultValue="0"
+        app:key="Darken"
+        android:max="100"
+        app:defaultValue="0"
+        app:min="0"
+        app:seekBarIncrement="5"
+        app:showSeekBarValue="true"
+        app:title="@string/pref_darken_title" />
 </PreferenceScreen>
