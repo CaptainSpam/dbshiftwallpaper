@@ -9,6 +9,10 @@
     <color name="background_nightwatch">#1574b7</color>
     <color name="background_zetashift">#603987</color>
     <color name="background_omegashift">#000000</color>
+    <!-- Future note to self: This has to remain not-quite-white because modern
+         Omega Shift is shaped like an ACTUAL banner, meaning the background
+         color is behind that shape, not a full-screen "banner" like the other
+         shifts. -->
     <color name="background_omegashift2021">#e9e8e7</color>
 
     <color name="background_betaflight">#566949</color>
