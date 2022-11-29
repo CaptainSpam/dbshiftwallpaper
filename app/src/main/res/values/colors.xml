@@ -18,6 +18,15 @@
     <color name="background_betaflight">#566949</color>
     <color name="background_duskguard">#2d2a40</color>
 
+    <!-- Note that the shaped banners use backgrounds that are different from
+         the primary colors used for the color theming. -->
+    <color name="background_dawnguard_banner">#f0d2c0</color>
+    <color name="background_alphaflight_banner">#bd9799</color>
+    <color name="background_nightwatch_banner">#98a8bf</color>
+    <color name="background_zetashift_banner">#7b6f8a</color>
+    <color name="background_betaflight_banner">#7c8b6f</color>
+    <color name="background_duskguard_banner">#4d4d60</color>
+
     <color name="secondary_dawnguard">#c16b31</color>
     <color name="secondary_alphaflight">#741216</color>
     <color name="secondary_nightwatch">#27245f</color>
