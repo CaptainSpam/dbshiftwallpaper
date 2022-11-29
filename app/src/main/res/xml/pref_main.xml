@@ -29,6 +29,13 @@
         android:summaryOff="@string/pref_bee_shed_off"
         android:summaryOn="@string/pref_bee_shed_on"
         android:title="@string/pref_bee_shed_title" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="ShapedBanners"
+        android:persistent="true"
+        android:summaryOff="@string/pref_shaped_banners_off"
+        android:summaryOn="@string/pref_shaped_banners_on"
+        android:title="@string/pref_shaped_banners_title" />
     <SeekBarPreference
         android:defaultValue="0"
         app:key="Darken"

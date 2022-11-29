@@ -53,6 +53,7 @@ class DBWallpaperService : WallpaperService() {
         const val PREF_VINTAGEOMEGASHIFT = "VintageOmegaShift"
         const val PREF_BEESHED = "RustproofBeeShed"
         const val PREF_DARKEN = "Darken"
+        const val PREF_SHAPED = "ShapedBanners"
 
         // The time between frames in the fade, in ms.  At present, this is a 30fps fade.
         private const val FRAME_TIME = 1000L / 30L
