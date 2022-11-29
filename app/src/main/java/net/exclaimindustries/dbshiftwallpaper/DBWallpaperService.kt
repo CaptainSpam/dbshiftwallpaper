@@ -201,6 +201,11 @@ class DBWallpaperService : WallpaperService() {
             get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
                 .getInt(PREF_DARKEN, 0)
 
+        /** Whether or not the user wants shaped banners instead of rectangular. */
+        private val useShapedBanners: Boolean
+            get() = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
+                .getBoolean(PREF_SHAPED, false)
+
         /**
          * Grab the current calendar.  It will be adjusted to the appropriate timezone depending on
          * prefs.
@@ -327,6 +332,58 @@ class DBWallpaperService : WallpaperService() {
         }
 
         /**
+         * Gets the primary color for a given shift.  This is for the wallpaper color theming.  This
+         * does NOT change with the shaped banners pref.
+         *
+         * @param shift the shift in question
+         * @return the color int you're looking for
+         */
+        private fun getPrimaryColor(shift: DBShift): Int {
+            val res = resources
+            return when (shift) {
+                DBShift.DAWNGUARD -> ResourcesCompat.getColor(
+                    res, R.color.background_dawnguard,
+                    null
+                )
+                DBShift.ALPHAFLIGHT -> ResourcesCompat.getColor(
+                    res, R.color.background_alphaflight,
+                    null
+                )
+                DBShift.BETAFLIGHT -> ResourcesCompat.getColor(
+                    res, R.color.background_betaflight,
+                    null
+                )
+                DBShift.NIGHTWATCH -> ResourcesCompat.getColor(
+                    res, R.color.background_nightwatch,
+                    null
+                )
+                DBShift.DUSKGUARD -> ResourcesCompat.getColor(
+                    res, R.color.background_duskguard,
+                    null
+                )
+                DBShift.ZETASHIFT -> ResourcesCompat.getColor(
+                    res, R.color.background_zetashift,
+                    null
+                )
+                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(
+                    res,
+                    when (useVintageOmega) {
+                        true -> R.color.background_omegashift
+                        false -> R.color.background_omegashift2021
+                    },
+                    null
+                )
+                else -> {
+                    Log.e(
+                        DEBUG_TAG, "Tried to get primary color for shift " +
+                                "${shift.name} but fell out of switch statement?"
+                    )
+                    0
+                }
+            }
+        }
+
+        /**
          * Gets the background color for a given shift.  This will fill the area that isn't taken up
          * by the banner.
          *
@@ -335,28 +392,69 @@ class DBWallpaperService : WallpaperService() {
          */
         private fun getBackgroundColor(shift: DBShift): Int {
             val res = resources
+            val shapedBanners = useShapedBanners
             return when (shift) {
-                DBShift.DAWNGUARD -> ResourcesCompat.getColor(res, R.color.background_dawnguard,
-                                                              null)
-                DBShift.ALPHAFLIGHT -> ResourcesCompat.getColor(res, R.color.background_alphaflight,
-                                                                null)
-                DBShift.BETAFLIGHT -> ResourcesCompat.getColor(res, R.color.background_betaflight,
-                                                               null)
-                DBShift.NIGHTWATCH -> ResourcesCompat.getColor(res, R.color.background_nightwatch,
-                                                               null)
-                DBShift.DUSKGUARD -> ResourcesCompat.getColor(res, R.color.background_duskguard,
-                                                              null)
-                DBShift.ZETASHIFT -> ResourcesCompat.getColor(res, R.color.background_zetashift,
-                                                              null)
-                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(res,
-                    when(useVintageOmega) {
-                    true -> R.color.background_omegashift
-                    false -> R.color.background_omegashift2021
-                },
-                    null)
+                DBShift.DAWNGUARD -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_dawnguard_banner
+                        false -> R.color.background_dawnguard
+                    },
+                    null
+                )
+                DBShift.ALPHAFLIGHT -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_alphaflight_banner
+                        false -> R.color.background_alphaflight
+                    },
+                    null
+                )
+                DBShift.BETAFLIGHT -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_betaflight_banner
+                        false -> R.color.background_betaflight
+                    },
+                    null
+                )
+                DBShift.NIGHTWATCH -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_nightwatch_banner
+                        false -> R.color.background_nightwatch
+                    },
+                    null
+                )
+                DBShift.DUSKGUARD -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_duskguard_banner
+                        false -> R.color.background_duskguard
+                    },
+                    null
+                )
+                DBShift.ZETASHIFT -> ResourcesCompat.getColor(
+                    res,
+                    when (shapedBanners) {
+                        true -> R.color.background_zetashift_banner
+                        false -> R.color.background_zetashift
+                    },
+                    null
+                )
+                DBShift.OMEGASHIFT -> ResourcesCompat.getColor(
+                    res,
+                    when (useVintageOmega) {
+                        true -> R.color.background_omegashift
+                        false -> R.color.background_omegashift2021
+                    },
+                    null
+                )
                 else -> {
-                    Log.e(DEBUG_TAG, "Tried to get background color for shift " +
-                            "${shift.name} fell out of switch statement?")
+                    Log.e(
+                        DEBUG_TAG, "Tried to get background color for shift " +
+                                "${shift.name} but fell out of switch statement?"
+                    )
                     0
                 }
             }
@@ -371,20 +469,41 @@ class DBWallpaperService : WallpaperService() {
          */
         @DrawableRes
         private fun getBannerDrawable(shift: DBShift): Int {
+            val shapedBanners = useShapedBanners
             return when (shift) {
-                DBShift.DAWNGUARD -> R.drawable.dbdawnguard
-                DBShift.ALPHAFLIGHT -> R.drawable.dbalphaflight
-                DBShift.BETAFLIGHT -> R.drawable.dbbetaflight
-                DBShift.NIGHTWATCH -> R.drawable.dbnightwatch
-                DBShift.DUSKGUARD -> R.drawable.dbduskguard
-                DBShift.ZETASHIFT -> R.drawable.dbzetashift
-                DBShift.OMEGASHIFT -> when(useVintageOmega) {
+                DBShift.DAWNGUARD -> when (shapedBanners) {
+                    true -> R.drawable.dbdawnguardbanner
+                    false -> R.drawable.dbdawnguard
+                }
+                DBShift.ALPHAFLIGHT -> when (shapedBanners) {
+                    true -> R.drawable.dbalphaflightbanner
+                    false -> R.drawable.dbalphaflight
+                }
+                DBShift.BETAFLIGHT -> when (shapedBanners) {
+                    true -> R.drawable.dbbetaflightbanner
+                    false -> R.drawable.dbbetaflight
+                }
+                DBShift.NIGHTWATCH -> when (shapedBanners) {
+                    true -> R.drawable.dbnightwatchbanner
+                    false -> R.drawable.dbnightwatch
+                }
+                DBShift.DUSKGUARD -> when (shapedBanners) {
+                    true -> R.drawable.dbduskguardbanner
+                    false -> R.drawable.dbduskguard
+                }
+                DBShift.ZETASHIFT -> when (shapedBanners) {
+                    true -> R.drawable.dbzetashiftbanner
+                    false -> R.drawable.dbzetashift
+                }
+                DBShift.OMEGASHIFT -> when (useVintageOmega) {
                     true -> R.drawable.dbomegashift
                     false -> R.drawable.dbomegashift2021
                 }
                 else -> {
-                    Log.e(DEBUG_TAG, "Tried to get banner Drawable for shift " +
-                            "${shift.name}, fell out of switch statement?")
+                    Log.e(
+                        DEBUG_TAG, "Tried to get banner Drawable for shift " +
+                                "${shift.name}, but fell out of switch statement?"
+                    )
                     -1
                 }
             }
@@ -606,10 +725,9 @@ class DBWallpaperService : WallpaperService() {
             val secondary: Color
             val tertiary: Color
 
-            // To wit: The background color will be the primary, as that's the splash to fill in any
-            // space that the banner doesn't take.  Most of the screen should be this color, in
-            // other words.  Secondary and tertiary is on a per-use basis.
-            val primary = Color.valueOf(getBackgroundColor(mLastDraw))
+            // The primary color is whatever's primary on the banner.  The background no longer has
+            // any say in this.  Secondary and tertiary is on a per-use basis.
+            val primary = Color.valueOf(getPrimaryColor(mLastDraw))
             val res = resources
 
             when (mLastDraw) {
