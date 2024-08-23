@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 33
+    compileSdk 35
     defaultConfig {
         applicationId "net.exclaimindustries.dbshiftwallpaper"
         minSdkVersion 14
-        targetSdkVersion 33
-        versionCode 13
-        versionName "1.2.6"
+        targetSdkVersion 35
+        versionCode 14
+        versionName "1.2.7"
         vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
