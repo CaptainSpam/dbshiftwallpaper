@@ -2,8 +2,17 @@ package net.exclaimindustries.dbshiftwallpaper
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewGroup.MarginLayoutParams
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.OnApplyWindowInsetsListener
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -19,6 +28,40 @@ class DBWallpaperPreferences : AppCompatActivity() {
         }
 
         private var omegaVintagePref: Preference? = null
+
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View {
+            val viewToReturn = super.onCreateView(inflater, container, savedInstanceState)
+
+            // PreferencesFragmentCompat does really weird things to the layout that my trusty
+            // dealWithInsets method from Geohash Droid can't deal with, so we'll do it here.
+            ViewCompat.setOnApplyWindowInsetsListener(
+                viewToReturn,
+                OnApplyWindowInsetsListener{ v: View?, windowInsets: WindowInsetsCompat? ->
+                    val insets = windowInsets!!.getInsets(WindowInsetsCompat.Type.systemBars())
+                    val mlp = v!!.layoutParams as MarginLayoutParams
+                    mlp.topMargin += insets.top
+                    mlp.leftMargin += insets.left
+                    mlp.bottomMargin += insets.bottom
+                    mlp.rightMargin += insets.right
+                    v.layoutParams = mlp
+                    WindowInsetsCompat.CONSUMED
+            })
+
+            val dayMode = (requireActivity().resources
+                .configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+            val insetsController =
+                WindowCompat.getInsetsController(
+                    requireActivity().window,
+                    requireActivity().findViewById<View?>(id))
+            insetsController.isAppearanceLightStatusBars = dayMode
+            insetsController.isAppearanceLightNavigationBars = dayMode
+
+            return viewToReturn
+        }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?,
                                          rootKey: String?) {
