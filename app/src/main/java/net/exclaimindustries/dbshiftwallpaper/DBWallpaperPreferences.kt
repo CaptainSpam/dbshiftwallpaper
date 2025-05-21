@@ -35,6 +35,8 @@ class DBWallpaperPreferences : AppCompatActivity() {
             savedInstanceState: Bundle?
         ): View {
             val viewToReturn = super.onCreateView(inflater, container, savedInstanceState)
+            val originalLayoutParams =
+                MarginLayoutParams(viewToReturn.layoutParams as MarginLayoutParams)
 
             // PreferencesFragmentCompat does really weird things to the layout that my trusty
             // dealWithInsets method from Geohash Droid can't deal with, so we'll do it here.
@@ -43,10 +45,10 @@ class DBWallpaperPreferences : AppCompatActivity() {
                 OnApplyWindowInsetsListener{ v: View?, windowInsets: WindowInsetsCompat? ->
                     val insets = windowInsets!!.getInsets(WindowInsetsCompat.Type.systemBars())
                     val mlp = v!!.layoutParams as MarginLayoutParams
-                    mlp.topMargin += insets.top
-                    mlp.leftMargin += insets.left
-                    mlp.bottomMargin += insets.bottom
-                    mlp.rightMargin += insets.right
+                    mlp.topMargin = originalLayoutParams.topMargin + insets.top
+                    mlp.leftMargin = originalLayoutParams.leftMargin + insets.left
+                    mlp.bottomMargin = originalLayoutParams.bottomMargin + insets.bottom
+                    mlp.rightMargin = originalLayoutParams.rightMargin + insets.right
                     v.layoutParams = mlp
                     WindowInsetsCompat.CONSUMED
             })
