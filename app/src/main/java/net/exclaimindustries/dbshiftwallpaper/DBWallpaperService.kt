@@ -542,20 +542,15 @@ class DBWallpaperService : WallpaperService() {
 
             // Resolve that into a Drawable.  If we're running pre-Lollipop, we need to go to the
             // VectorDrawableCompat library.  Either way, we only need to care that it's a Drawable.
-            val d = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                ResourcesCompat.getDrawable(
+            val d = ResourcesCompat.getDrawable(
                         resources, shiftBanner,
                         null)
-                else VectorDrawableCompat.create(resources,
-                                                 shiftBanner,
-                                                 null)
 
             // If d winds up null, something went very very wrong.
             if (d == null) {
                 Log.e(DEBUG_TAG,
                       "The shift banner Drawable is somehow null! (" +
-                              (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) "Lollipop or greater; should've been a VectorDrawable and also should've thrown an exception?"
-                              else "Pre-Lollipop; should've been a VectorDrawableCompat, must've been a parse error?") +
+                              "Lollipop or greater; should've been a VectorDrawable and also should've thrown an exception?" +
                               ")")
                 return
             }
