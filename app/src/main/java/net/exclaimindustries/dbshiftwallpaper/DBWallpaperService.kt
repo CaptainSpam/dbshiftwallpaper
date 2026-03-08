@@ -220,7 +220,7 @@ class DBWallpaperService : WallpaperService() {
             // ask for the shift in their OWN timezone, NOT Moonbase Time.
             return if (prefs.getBoolean(PREF_TIMEZONE, true)) {
                 // Fortunately in this case, the user knows what's good and right with the world.
-                Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"))
+                Calendar.getInstance(TimeZone.getTimeZone("America/Vancouver"))
             } else {
                 // In this case, the user gets a Shame Ticket.  A future version should implement
                 // Shame Tickets.
