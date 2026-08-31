@@ -239,9 +239,10 @@ class DBWallpaperService : WallpaperService() {
             // PREFS!!!
             val prefs = PreferenceManager.getDefaultSharedPreferences(this@DBWallpaperService)
 
-            // If it's not November, it's not Desert Bus time, and thus it can't be Omega Shift.
-            // Also, if the user doesn't want Omega Shift, it won't be Omega Shift.
-            if (month != Calendar.NOVEMBER || !prefs.getBoolean(PREF_OMEGASHIFT, false)) {
+            // If it's not November (or, for the potentially temporary purposes of 2026, October),
+            // it's not Desert Bus time, and thus it can't be Omega Shift.  Also, if the user
+            // doesn't want Omega Shift, it won't be Omega Shift.
+            if ((month != Calendar.OCTOBER && month != Calendar.NOVEMBER) || !prefs.getBoolean(PREF_OMEGASHIFT, false)) {
                 // If Omega Shift is supposed to be off but the last-drawn shift WAS Omega Shift,
                 // call a redraw.
                 Log.d(DEBUG_TAG, "We're not checking Omega Shift right now.")
