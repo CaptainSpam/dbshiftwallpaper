@@ -7,8 +7,8 @@ android {
         applicationId "net.exclaimindustries.dbshiftwallpaper"
         minSdkVersion 21
         targetSdkVersion 37
-        versionCode 17
-        versionName "1.2.10"
+        versionCode 18
+        versionName "1.2.11"
         vectorDrawables.useSupportLibrary = true
     }
     buildFeatures {
