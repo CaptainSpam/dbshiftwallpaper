@@ -1,6 +1,5 @@
 package net.exclaimindustries.dbshiftwallpaper
 
-import android.annotation.TargetApi
 import android.app.WallpaperColors
 import android.graphics.Canvas
 import android.graphics.Color
@@ -707,7 +706,7 @@ class DBWallpaperService : WallpaperService() {
             }
         }
 
-        @TargetApi(27)
+        @RequiresApi(27)
         override fun onComputeColors(): WallpaperColors? {
             // Let's get fancy here.  First off, if we're in the middle of a transition when we're
             // asked for this (I don't *think* that should happen, but maybe?), we return null.
