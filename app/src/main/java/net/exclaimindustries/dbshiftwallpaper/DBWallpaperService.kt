@@ -12,12 +12,12 @@ import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
-import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
-import cz.msebera.android.httpclient.client.methods.HttpGet
-import cz.msebera.android.httpclient.impl.client.BasicResponseHandler
-import cz.msebera.android.httpclient.impl.client.HttpClientBuilder
+import okhttp3.Call
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.IOException
 import java.util.*
 import kotlin.math.roundToInt
@@ -61,7 +61,7 @@ class DBWallpaperService : WallpaperService() {
         private const val FADE_TIME = 1000L
 
         // We'll use the VST's Omega Shift checker for simplicity.
-        private const val OMEGA_CHECK_URL = "http://vst.ninja/Resources/isitomegashift.html"
+        private const val OMEGA_CHECK_URL = "https://vst.ninja/Resources/isitomegashift.html"
 
         // The amount of time between Omega Shift checks.  We'll go with (at least) ten minutes for
         // now.
@@ -108,6 +108,15 @@ class DBWallpaperService : WallpaperService() {
         // surface.  Hopefully the service itself doesn't get destroyed all the time, else this
         // won't do anything.
         private var mLastOmegaCheck = 0L
+
+        // The HTTP client, complete with handy-dandy user agent.
+        private val mOkHttpClient = OkHttpClient.Builder().addNetworkInterceptor { chain ->
+            chain.proceed(chain
+                .request()
+                .newBuilder()
+                .addHeader("User-Agent", "dbshiftwallpaper/${BuildConfig.VERSION_NAME}")
+                .build())
+        }.build()
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
@@ -257,33 +266,32 @@ class DBWallpaperService : WallpaperService() {
                     Log.d(DEBUG_TAG, "DOING OMEGA CHECK NOW")
 
                     try {
-                        // Omega check!  Let's do it the same way the widget does it.  That's simple
-                        // and doesn't seem to be causing problems.
-                        val client = HttpClientBuilder.create().build()
-                        val request = HttpGet(OMEGA_CHECK_URL)
-                        val handler = BasicResponseHandler()
-
-                        // We should be getting EXACTLY a 0 or 1.  Nothing more.  If anything else
-                        // comes in, we can ignore it.
-                        when(val response = client.execute(request, handler).trim()) {
-                            "0" -> {
-                                Log.d(DEBUG_TAG, "It's not Omega Shift!")
-                                if (mOmegaShift) {
-                                    mOmegaShift = false
-                                    mHandler.removeCallbacks(mDrawRunner)
-                                    mHandler.post(mDrawRunner)
+                        // Omega check!  Let's grab something!
+                        val request: Request = Request.Builder().url(OMEGA_CHECK_URL).build()
+                        val call: Call = mOkHttpClient.newCall(request)
+                        call.execute().use { response ->
+                            // If anything other than a SINGLE 0 or a 1 comes in, we can ignore it.
+                            // DON'T assume it implicitly means Omega Shift is over.
+                            when(val omega = response.body.charStream().read().toChar()) {
+                                '0' -> {
+                                    Log.d(DEBUG_TAG, "It's not Omega Shift!")
+                                    if (mOmegaShift) {
+                                        mOmegaShift = false
+                                        mHandler.removeCallbacks(mDrawRunner)
+                                        mHandler.post(mDrawRunner)
+                                    }
                                 }
-                            }
-                            "1" -> {
-                                Log.d(DEBUG_TAG, "It's Omega Shift!")
-                                if (!mOmegaShift) {
-                                    mOmegaShift = true
-                                    mHandler.removeCallbacks(mDrawRunner)
-                                    mHandler.post(mDrawRunner)
+                                '1' -> {
+                                    Log.d(DEBUG_TAG, "It's Omega Shift!")
+                                    if (!mOmegaShift) {
+                                        mOmegaShift = true
+                                        mHandler.removeCallbacks(mDrawRunner)
+                                        mHandler.post(mDrawRunner)
+                                    }
                                 }
-                            }
-                            else -> {
-                                Log.w(DEBUG_TAG, "Network returned invalid character ${response}, ignoring.")
+                                else -> {
+                                    Log.w(DEBUG_TAG, "Network returned invalid data '${omega}', ignoring.")
+                                }
                             }
                         }
                     } catch (ioe: IOException) {

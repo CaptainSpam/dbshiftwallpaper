@@ -2,14 +2,17 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdk 36
+    compileSdkVersion 37
     defaultConfig {
         applicationId "net.exclaimindustries.dbshiftwallpaper"
         minSdkVersion 21
-        targetSdkVersion 36
+        targetSdkVersion 37
         versionCode 17
         versionName "1.2.10"
         vectorDrawables.useSupportLibrary = true
+    }
+    buildFeatures {
+        buildConfig = true
     }
     buildTypes {
         release {
@@ -29,10 +32,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.vectordrawable:vectordrawable:1.2.0'
     implementation 'androidx.preference:preference-ktx:1.2.1'
-    implementation 'cz.msebera.android:httpclient:4.5.8'
     implementation "androidx.core:core-ktx:1.16.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.1'
+    implementation 'com.squareup.okhttp3:okhttp:5.5.0'
 }
 repositories {
     mavenCentral()
